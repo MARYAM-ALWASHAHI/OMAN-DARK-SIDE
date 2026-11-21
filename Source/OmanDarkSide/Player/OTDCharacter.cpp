@@ -17,6 +17,9 @@
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Engine/GameViewportClient.h"
+#include "UI/SOTDTouchControls.h"
+#include "HAL/PlatformMisc.h"
 
 AOTDCharacter::AOTDCharacter()
 {
@@ -24,7 +27,7 @@ AOTDCharacter::AOTDCharacter()
 
 	GetCapsuleComponent()->InitCapsuleSize(34.f, 88.f);
 
-	// Rotation defaults (third person); SetCameraMode switches these at runtime.
+	// Third person: the body turns toward the direction of movement, not the camera.
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
@@ -35,22 +38,22 @@ AOTDCharacter::AOTDCharacter()
 	Move->MaxWalkSpeed = WalkSpeed;
 	Move->JumpZVelocity = 420.f;
 	Move->AirControl = 0.25f;
+	Move->NavAgentProps.bCanCrouch = true;
+	Move->MaxWalkSpeedCrouched = CrouchSpeed;
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = ThirdPersonArmLength;
 	CameraBoom->SocketOffset = FVector(0.f, 40.f, 60.f); // over-the-shoulder
 	CameraBoom->bUsePawnControlRotation = true;
+	CameraBoom->bDoCollisionTest = true;        // pull the camera in front of walls
+	CameraBoom->ProbeSize = 12.f;
+	CameraBoom->bEnableCameraLag = true;         // smooth follow
+	CameraBoom->CameraLagSpeed = 12.f;
 
 	ThirdPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
 	ThirdPersonCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	ThirdPersonCamera->bUsePawnControlRotation = false;
-
-	FirstPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
-	FirstPersonCamera->SetupAttachment(GetCapsuleComponent());
-	FirstPersonCamera->SetRelativeLocation(FVector(10.f, 0.f, FirstPersonEyeHeight));
-	FirstPersonCamera->bUsePawnControlRotation = true;
-	FirstPersonCamera->SetAutoActivate(false);
 
 	// Placeholder body: engine basic cylinder (100uu diameter/height), scaled to the capsule.
 	PlaceholderBody = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PlaceholderBody"));
@@ -71,9 +74,7 @@ void AOTDCharacter::BeginPlay()
 	// Apply values possibly overridden in a Blueprint subclass.
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 	CameraBoom->TargetArmLength = ThirdPersonArmLength;
-	FirstPersonCamera->SetRelativeLocation(FVector(10.f, 0.f, FirstPersonEyeHeight));
-
-	SetCameraMode(StartingCameraMode);
+	GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchSpeed;
 }
 
 void AOTDCharacter::PawnClientRestart()
@@ -81,6 +82,46 @@ void AOTDCharacter::PawnClientRestart()
 	Super::PawnClientRestart();
 	BuildDefaultInputIfMissing();
 	AddMappingContextToLocalPlayer();
+	ShowTouchControlsIfNeeded();
+}
+
+void AOTDCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	HideTouchControls();
+	Super::EndPlay(EndPlayReason);
+}
+
+void AOTDCharacter::ShowTouchControlsIfNeeded()
+{
+	if (TouchControlsWidget.IsValid() || !bEnableTouchControls || !IsLocallyControlled())
+	{
+		return;
+	}
+	if (!FPlatformMisc::SupportsTouchInput() && !bForceTouchControls)
+	{
+		return; // PC without touch: keyboard/mouse/gamepad only
+	}
+	UGameViewportClient* Viewport = GetWorld() ? GetWorld()->GetGameViewport() : nullptr;
+	if (!Viewport)
+	{
+		return;
+	}
+	TouchControlsWidget = SNew(SOTDTouchControls).Character(this);
+	Viewport->AddViewportWidgetContent(TouchControlsWidget.ToSharedRef(), 10);
+	UE_LOG(LogOTD, Log, TEXT("OTDCharacter: touch controls shown."));
+}
+
+void AOTDCharacter::HideTouchControls()
+{
+	if (!TouchControlsWidget.IsValid())
+	{
+		return;
+	}
+	if (UGameViewportClient* Viewport = GetWorld() ? GetWorld()->GetGameViewport() : nullptr)
+	{
+		Viewport->RemoveViewportWidgetContent(TouchControlsWidget.ToSharedRef());
+	}
+	TouchControlsWidget.Reset();
 }
 
 void AOTDCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -101,18 +142,18 @@ void AOTDCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	EIC->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 	EIC->BindAction(SprintAction, ETriggerEvent::Started, this, &AOTDCharacter::HandleSprintStarted);
 	EIC->BindAction(SprintAction, ETriggerEvent::Completed, this, &AOTDCharacter::HandleSprintStopped);
-	EIC->BindAction(ToggleCameraAction, ETriggerEvent::Started, this, &AOTDCharacter::HandleToggleCamera);
+	EIC->BindAction(CrouchAction, ETriggerEvent::Started, this, &AOTDCharacter::ToggleCrouch);
 }
 
 void AOTDCharacter::BuildDefaultInputIfMissing()
 {
-	const bool bAllAssigned = DefaultMappingContext && MoveAction && LookAction && JumpAction && SprintAction && ToggleCameraAction;
+	const bool bAllAssigned = DefaultMappingContext && MoveAction && LookAction && JumpAction && SprintAction && CrouchAction;
 	if (bAllAssigned)
 	{
 		return;
 	}
 
-	UE_LOG(LogOTD, Log, TEXT("OTDCharacter: input assets not fully assigned, building runtime keyboard/mouse defaults."));
+	UE_LOG(LogOTD, Log, TEXT("OTDCharacter: input assets not fully assigned, building runtime keyboard/mouse/gamepad/touch defaults."));
 
 	auto MakeAction = [this](const TCHAR* Name, EInputActionValueType Type)
 	{
@@ -125,7 +166,7 @@ void AOTDCharacter::BuildDefaultInputIfMissing()
 	LookAction = MakeAction(TEXT("IA_Look_Runtime"), EInputActionValueType::Axis2D);
 	JumpAction = MakeAction(TEXT("IA_Jump_Runtime"), EInputActionValueType::Boolean);
 	SprintAction = MakeAction(TEXT("IA_Sprint_Runtime"), EInputActionValueType::Boolean);
-	ToggleCameraAction = MakeAction(TEXT("IA_ToggleCamera_Runtime"), EInputActionValueType::Boolean);
+	CrouchAction = MakeAction(TEXT("IA_Crouch_Runtime"), EInputActionValueType::Boolean);
 
 	UInputMappingContext* IMC = NewObject<UInputMappingContext>(this, TEXT("IMC_Default_Runtime"));
 	DefaultMappingContext = IMC;
@@ -156,7 +197,30 @@ void AOTDCharacter::BuildDefaultInputIfMissing()
 
 	IMC->MapKey(JumpAction, EKeys::SpaceBar);
 	IMC->MapKey(SprintAction, EKeys::LeftShift);
-	IMC->MapKey(ToggleCameraAction, EKeys::V);
+	IMC->MapKey(CrouchAction, EKeys::C); // editor testing only
+
+	// Gamepad sticks. The mobile virtual joysticks emit these same keys, so this
+	// also drives phone/iPad touch movement and look. Single axes are mapped
+	// separately (Y axes swizzled into the 2D value's Y).
+	auto DeadZone = [IMC]() { return NewObject<UInputModifierDeadZone>(IMC); };
+	IMC->MapKey(MoveAction, EKeys::Gamepad_LeftX).Modifiers.Add(DeadZone());
+	{
+		FEnhancedActionKeyMapping& M = IMC->MapKey(MoveAction, EKeys::Gamepad_LeftY);
+		M.Modifiers.Add(DeadZone());
+		M.Modifiers.Add(Swizzle());
+	}
+	IMC->MapKey(LookAction, EKeys::Gamepad_RightX).Modifiers.Add(DeadZone());
+	{
+		FEnhancedActionKeyMapping& M = IMC->MapKey(LookAction, EKeys::Gamepad_RightY);
+		M.Modifiers.Add(DeadZone());
+		M.Modifiers.Add(Swizzle());
+		M.Modifiers.Add(NegateY()); // same convention as mouse: stick up = look up
+	}
+
+	// Gamepad buttons (PC controllers and MFi/Bluetooth controllers on iPad/phone).
+	IMC->MapKey(JumpAction, EKeys::Gamepad_FaceButton_Bottom);
+	IMC->MapKey(SprintAction, EKeys::Gamepad_LeftThumbstick);
+	IMC->MapKey(CrouchAction, EKeys::Gamepad_FaceButton_Right);
 }
 
 void AOTDCharacter::AddMappingContextToLocalPlayer()
@@ -196,41 +260,34 @@ void AOTDCharacter::HandleLook(const FInputActionValue& Value)
 	AddControllerPitchInput(Axis.Y);
 }
 
-void AOTDCharacter::HandleSprintStarted()
+void AOTDCharacter::SetSprinting(bool bNewSprinting)
 {
-	bIsSprinting = true;
-	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
-	DebugMessage(TEXT("Sprint: ON"));
+	if (bIsSprinting == bNewSprinting)
+	{
+		return;
+	}
+	if (bNewSprinting && bIsCrouched)
+	{
+		UnCrouch();
+	}
+	bIsSprinting = bNewSprinting;
+	GetCharacterMovement()->MaxWalkSpeed = bIsSprinting ? SprintSpeed : WalkSpeed;
+	DebugMessage(bIsSprinting ? TEXT("Sprint: ON") : TEXT("Sprint: OFF"));
 }
 
-void AOTDCharacter::HandleSprintStopped()
+void AOTDCharacter::ToggleCrouch()
 {
-	bIsSprinting = false;
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
-	DebugMessage(TEXT("Sprint: OFF"));
-}
-
-void AOTDCharacter::HandleToggleCamera()
-{
-	SetCameraMode(CameraMode == EOTDCameraMode::ThirdPerson ? EOTDCameraMode::FirstPerson : EOTDCameraMode::ThirdPerson);
-}
-
-void AOTDCharacter::SetCameraMode(EOTDCameraMode NewMode)
-{
-	CameraMode = NewMode;
-	const bool bFirstPerson = (NewMode == EOTDCameraMode::FirstPerson);
-
-	FirstPersonCamera->SetActive(bFirstPerson);
-	ThirdPersonCamera->SetActive(!bFirstPerson);
-
-	// First person: body faces where the camera looks. Third person: body faces movement direction.
-	bUseControllerRotationYaw = bFirstPerson;
-	GetCharacterMovement()->bOrientRotationToMovement = !bFirstPerson;
-
-	// Hide the placeholder body from the owning player's own view in first person.
-	PlaceholderBody->SetOwnerNoSee(bFirstPerson);
-
-	DebugMessage(bFirstPerson ? TEXT("Camera: FIRST PERSON") : TEXT("Camera: THIRD PERSON"));
+	if (bIsCrouched)
+	{
+		UnCrouch();
+		DebugMessage(TEXT("Stand"));
+	}
+	else if (CanCrouch())
+	{
+		SetSprinting(false);
+		Crouch();
+		DebugMessage(TEXT("Crouch"));
+	}
 }
 
 void AOTDCharacter::DebugMessage(const FString& Message) const

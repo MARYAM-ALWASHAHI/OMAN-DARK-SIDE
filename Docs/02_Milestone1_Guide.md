@@ -28,7 +28,9 @@
    - [ ] WASD moves relative to the camera, and the mouse looks around (mouse up = look up).
    - [ ] Holding Shift is visibly faster, and "Sprint: ON/OFF" appears on screen.
    - [ ] Space jumps.
-   - [ ] V switches to first person: the cylinder disappears from view and the camera sits at eye height. Pressing V again returns to third person.
+   - [ ] C crouches: the capsule shrinks and speed drops. C again stands up. Pressing Shift while crouched stands up and runs.
+   - [ ] Walk close to a wall with the camera behind you: the camera moves in front of the wall instead of clipping through it.
+   - Note: the project is now **third person only**. The first-person mode and the V key were removed.
    - [ ] Output Log shows `LogOTD: ... building runtime keyboard/mouse defaults`.
 6. Optional, data-driven tuning:
    - Create a Blueprint child of `OTDCharacter` (`BP_OTDCharacter`) and change WalkSpeed, SprintSpeed, and camera values there.
@@ -45,3 +47,49 @@
 - Uses `UInputAction::ValueType` and `UInputMappingContext::MapKey` at runtime. These are public in current UE5 versions.
   - If your version reports them as protected or deprecated, create the IA_*/IMC_Default assets in the editor and assign them to `BP_OTDCharacter` instead. The code then skips the runtime defaults.
 - Uses the engine asset `/Engine/BasicShapes/Cylinder`.
+
+---
+
+## M1b: Phone and iPad support (the project is now mobile only)
+**Status: code and config written but never compiled, packaged, or run on a device.**
+
+### What was added
+- **Movement and look on touch:** the engine's built-in virtual joysticks (left stick moves, right stick looks), enabled in `Config/DefaultInput.ini`.
+- **Touch buttons** on the right edge of the screen: `CROUCH/STAND` (toggle), `RUN/WALK` (a toggle, not a hold), and `JUMP` (`Source/OmanDarkSide/UI/SOTDTouchControls.*`).
+  - They are built in C++ Slate, so no editor assets are needed.
+  - They sit inside a safe zone, which keeps them clear of notches and rounded corners.
+- **Gamepad support:** left stick, right stick, A/Cross = jump, B/Circle = crouch, left-stick click = sprint. This also works with Bluetooth controllers on iPad and iPhone.
+- **Android settings:** landscape only, arm64, Vulkan.
+- **iOS settings:** iPhone and iPad, landscape only, Metal.
+- The package/bundle ID `com.omandarkside.prototype` is a **placeholder**. Change it to your own.
+- **Mobile-only project settings:** the target hardware is set to Mobile at Maximum quality. The renderer settings are mobile deferred shading, HDR, TAA and mobile ambient occlusion, and the PC-only Lumen and virtual-shadow settings were removed. Keyboard and mouse remain only so you can test in the editor.
+
+### Testing on PC first (quickest)
+1. Editor Preferences → Level Editor → Play → enable **Use Mouse for Touch**.
+2. Project Settings → Input → enable **Always Show Touch Interface** (temporarily).
+3. In `BP_OTDCharacter` (or in C++), enable `bForceTouchControls`.
+4. Play → **Mobile Preview ES3.1 (PIE)**. You should see the two joysticks and the three buttons, and they should work with the mouse.
+5. Turn the settings from steps 1–3 back off afterwards.
+
+### Testing on Android
+1. Install Android Studio and the SDK/NDK versions your UE version needs (see Epic's "Setting Up Android SDK and NDK" page for your version).
+2. Turn on Developer Mode and USB debugging on the phone, then connect it by cable.
+3. In UE: Platforms → Android → choose the device → **Launch**, or **Package Project** to get an APK.
+
+### Testing on iPhone and iPad
+- **Requires a Mac** with Xcode and an Apple Developer account for code signing. It can't be built from Windows alone; remote building from Windows to a Mac also needs a Mac.
+- Set your Bundle ID and signing team in Project Settings → iOS, then use Platforms → iOS → Launch or Package.
+
+### Device checklist
+- [ ] The game opens in landscape and fills the screen on both phone and iPad
+- [ ] The left joystick moves the character and the right one turns the camera (stick up = look up)
+- [ ] The three buttons respond and aren't cut off by the notch
+- [ ] RUN switches to WALK and the speed changes
+- [ ] CROUCH lowers the character and STAND brings it back
+- [ ] Frame rate is acceptable. Enable the `stat fps` console command for a development build.
+
+### Known risks and incomplete parts
+- Lumen GI and Virtual Shadow Maps are PC-only. Mobile uses the separate mobile renderer, so it **will look different from PC**. Visuals and performance on actual devices haven't been verified.
+- The engine's built-in virtual joysticks are a legacy system. They should work with Enhanced Input through the gamepad keys, but this hasn't been tested. The plan is to replace them with a custom UMG joystick in the UI milestone.
+- Button text is English only. Arabic touch buttons need an Arabic font, which comes later in the UI milestone.
+- There are no separate device profiles or quality settings for weak phones yet.

@@ -1,7 +1,7 @@
-# OMAN: THE DARK SIDE — Vertical Slice Production Blueprint (v0.1)
+# OMAN: THE DARK SIDE — Vertical Slice Production Blueprint (v0.2 — mobile only)
 
 Status: **planning document**. Nothing in this file is implemented unless the Milestone table says so.
-Engine: Unreal Engine 5 (C++ core + Blueprint/data configuration). Platform: Windows PC first; mobile is a later phase.
+Engine: Unreal Engine 5 (C++ core + Blueprint/data configuration). **Platforms: mobile only — Android phones, iPhone and iPad.** There is no PC release. A Windows PC (and a Mac for iOS builds) is used only as the development machine. Quality goal: **as high as possible on high-end devices** (see §11). **Camera: third person only.** Final engine decision and mobile spec: `04_Mobile_Spec_and_Engine_Decision.md`. Every milestone is tested on a real phone and a real iPad.
 
 ---
 
@@ -10,7 +10,7 @@ Engine: Unreal Engine 5 (C++ core + Blueprint/data configuration). Platform: Win
 The slice is set in a **fictional town and wadi inspired by the Nizwa area**, not a reproduction of Nizwa itself.
 
 Why this region works for the first prototype:
-- **Compact and varied.** In a small footprint (about 2 × 2 km) it can show a town core, a market, palm groves on a falaj (irrigation channel), a mountain road, and an abandoned mud-brick quarter.
+- **Compact and varied.** In a small footprint (about 1.5 × 1.5 km, sized for phone memory) it can show a town core, a market, palm groves on a falaj (irrigation channel), a mountain road, and an abandoned mud-brick quarter.
 - **No ocean.** It avoids large water, ports, and boats, which are expensive systems for a first slice.
 - **It fits the story.** Old abandoned quarters next to living towns are a real feature of the interior. They give a natural, respectful setting for a mystery without inventing a fantasy location.
 - **It leads to later regions.** The road can later continue up toward the Jebel Akhdar plateau.
@@ -27,13 +27,14 @@ Fictional place names (all must be checked so they don't match a real village; s
 ## 1. Scope
 
 **In scope (vertical slice)**
-- One region of about 2 × 2 km on a single World Partition map
-- One playable protagonist: walk, sprint, jump, first- and third-person cameras
+- One region of about 1.5 × 1.5 km on a single World Partition map, streamed for mobile memory
+- One playable protagonist: walk, run, crouch, jump; third-person camera only
 - One drivable vehicle: a generic original 4x4 pickup
 - 5 interactive NPCs plus 6–10 ambient placeholder NPCs
 - 1 investigation mission, start to finish
 - 1 abandoned location and 1 restrained supernatural event
-- A basic day/night cycle and 2 weather states (clear, and dusty haze/overcast)
+- 3 fixed lighting moods (afternoon, dusk, night) instead of a continuous day/night cycle. This lets lighting be baked, which is much better looking and faster on phones; a continuous cycle comes later if devices can afford it.
+- 2 weather states (clear, and dusty haze)
 - Save/load of mission state and player position
 - Minimal HUD: objective text, interaction prompt, evidence notebook
 - English UI and subtitles; Arabic text placeholders
@@ -47,7 +48,9 @@ Fictional place names (all must be checked so they don't match a real village; s
 - Full daily routines for NPCs (they stand or idle at fixed spots)
 - Recorded Omani voice acting (text and subtitles only)
 - Final evidence board with free-form theory linking (the slice has a simple version)
-- Mobile build, multiple endings, and any multiplayer
+- Multiple endings and any multiplayer
+- PC, console, and VR builds
+- Low-end phones (the slice targets high-end devices only; see §11)
 
 ---
 
@@ -142,16 +145,18 @@ Fictional place names (all must be checked so they don't match a real village; s
 
 | System | Slice version |
 |---|---|
-| Player controller | Walk, sprint, jump, look, FP/TP switch (**Milestone 1**) |
+| Player controller | Walk, run, crouch, jump, touch look; third-person follow camera with collision (**Milestone 1**) |
 | Interaction | Line-trace + `IOTDInteractable` interface + on-screen prompt |
 | Evidence | `UOTDEvidenceData` (Primary Data Asset) + evidence component on the player |
 | Mission | `UOTDMissionData` data asset (objectives + conditions) + `UOTDMissionSubsystem` |
 | Dialogue | Data-table dialogue nodes with optional evidence requirements |
 | Vehicle | Chaos Vehicle pickup: enter/exit, headlights |
 | Horror events | `AOTDHorrorEventTrigger` (one-shot, conditions, audio + actor-state changes) |
-| World time | Directional light rotation + 2 weather presets |
+| World time | 3 baked lighting moods + 2 weather presets |
 | Save | `UOTDSaveGame` (mission state, evidence IDs, transform, one-shot event flags) |
-| UI | UMG: objective, prompt, notebook list, dialogue box, pause menu |
+| Touch input | Virtual joysticks + touch buttons (**M1b**); later a custom UMG joystick, tap-to-interact, swipe-to-look |
+| UI | UMG designed for touch: large targets, safe zones, phone + iPad layouts |
+| Device quality | Device profiles: High / Ultra by device tier (§11) |
 
 ---
 
@@ -169,6 +174,7 @@ Source/OmanDarkSide/
   World/        OTDTimeOfDayManager
 Content/OTD/
   Maps/         L_WadiAlSukoon (World Partition), L_Greybox_Test
+Config/         DefaultDeviceProfiles.ini (iOS/Android quality tiers, from M2)
   Blueprints/   BP_OTDCharacter, BP_Pickup, BP_NPC_*
   Data/         Evidence/, Missions/, Dialogue/
   Input/        IA_*, IMC_Default
@@ -186,7 +192,7 @@ Rule: C++ owns state and rules. Blueprints and data assets own content, which ke
 
 **Can build now (in-engine, no external artists)**
 - Greybox map with UE5 Landscape, splines for roads, and Modeling Mode blockouts
-- Placeholder characters: UE mannequin, or MetaHuman Creator (which requires an Epic account; clothing accuracy is limited)
+- Placeholder characters: UE mannequin, or MetaHuman Creator (which requires an Epic account; clothing accuracy is limited). MetaHumans must use their mobile LODs on phones.
 - Input, UI widgets, data assets, and the save system
 - Lighting, the sky atmosphere and fog, and day/night
 - Free CC0/Megascans/Fab textures and rocks (check each licence)
@@ -207,16 +213,17 @@ Rule: C++ owns state and rules. Blueprints and data assets own content, which ke
 
 | # | Milestone | Done when (test) | Status |
 |---|---|---|---|
-| **M1** | Project foundation + player controller | Project compiles; in PIE you can walk/sprint/jump/look and V toggles FP/TP | **Code written, NOT compiled/tested** |
-| M2 | Greybox level L_WadiAlSukoon | All areas reachable on foot; landmarks readable from roads; 60 fps on dev PC | Not started |
+| **M1** | Project foundation + third-person controller | Project compiles; in editor play you can walk/run/crouch/jump/look; camera stays out of walls | **Code written, NOT compiled/tested** |
+| **M1b** | Phone + iPad controls and mobile-only settings | First APK/IPA installs and runs; touch joysticks + buttons work on a real phone and iPad, landscape, safe zone respected | **Code written, NOT compiled/tested** |
+| M2 | Greybox level L_WadiAlSukoon | All areas reachable on foot; landmarks readable on a phone screen; stable 30 fps on the target phone | Not started |
 | M3 | Interaction + evidence | Pick up E1–E5 placeholders; notebook lists them; no duplicates | Not started |
 | M4 | Mission subsystem | Objectives update in order; mission completes; tested with console skip commands | Not started |
 | M5 | Dialogue + NPCs | 5 NPCs, evidence-gated choices work; branch coverage checklist | Not started |
 | M6 | Vehicle | Enter/exit pickup; drive full road loop without falling through | Not started |
 | M7 | Horror event + audio | Event fires once, survives save/load without re-firing | Not started |
 | M8 | Time/weather + save/load | Save mid-mission, reload, state identical | Not started |
-| M9 | Art pass on slice | Replace greybox in 1 area with modular kit; perf budget held | Not started |
-| M10 | Slice playtest | 3 external playthroughs, bug list, cultural review sign-off | Not started |
+| M9 | Art pass on slice | Replace greybox in 1 area with modular kit; §11 budgets held on phone and iPad; no overheating in a 20-minute session | Not started |
+| M10 | Slice playtest | 3 external playthroughs on phones, bug list, cultural review sign-off | Not started |
 
 ---
 
@@ -226,10 +233,13 @@ Rule: C++ owns state and rules. Blueprints and data assets own content, which ke
 - **Character realism.** Accurate Omani clothing and faces need specialist artists, and MetaHuman clothing won't be accurate out of the box.
 - **Scope creep.** The brief asks for AAA scale across 7 regions; this slice is deliberately small.
 - **Cultural sensitivity** around police, religion, folklore, and real tribes or places.
-- **Performance.** Lumen + Nanite on mid-range PCs; mobile will need a separate content path.
+- **Performance and heat.** Phones throttle when hot. "Very high quality" must be balanced against battery life and stable frame rate.
+- **Mobile rendering limits.** Lumen GI, Nanite, and virtual shadow maps are PC/console features and are not used. Quality comes from baked lighting, good materials, and art direction.
+- **App size.** Store download limits mean large content must be downloaded after install (Play Asset Delivery / on-demand resources).
 
 **Assumptions**
 - UE 5.4 or newer.
+- Development on a Windows PC; a Mac with Xcode plus an Apple Developer account is available for iOS builds.
 - A single developer or small team.
 - English UI first.
 
@@ -242,3 +252,30 @@ Rule: C++ owns state and rules. Blueprints and data assets own content, which ke
 - Personal names: avoid real tribal surnames without consent
 - Folklore and beliefs: how to reference them respectfully, or whether to avoid them
 - Dialogue in the Omani Arabic dialect, which needs native writers
+
+---
+
+## 11. Mobile quality targets (to be confirmed on real devices)
+
+These are **starting targets, not measured results**.
+
+| Tier | Example devices (verify current models) | Target |
+|---|---|---|
+| Ultra | Recent iPhone Pro models, iPads with M-series chips | 30 fps locked, higher render resolution, more shadow distance |
+| High | Recent flagship Android phones | 30 fps locked, standard settings |
+| Not supported in the slice | Mid-range and older phones | — |
+
+**How quality is achieved on phones**
+- The mobile **deferred** renderer, which allows more lights and better materials on high-end devices
+- **Baked lighting** (Lightmass) for the town and the abandoned quarter
+- Detailed PBR textures with mipmaps and texture streaming
+- Hand-made LODs, so distant buildings are simplified
+- Temporal anti-aliasing (TAA) and mobile ambient occlusion
+- Restrained fog and particles, which cost a lot on phones
+
+**Starting budgets per frame (adjust after profiling):**
+- under about 1,000 draw calls
+- under about 1.5 million visible triangles
+- under about 2 GB of total memory on iPhone
+
+**Tools:** `stat unit`, `stat rhi`, and Unreal Insights on the device, plus Xcode Instruments (iOS) and Android GPU Inspector.
