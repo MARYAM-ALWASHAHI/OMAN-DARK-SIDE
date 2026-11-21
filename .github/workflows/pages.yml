@@ -4,7 +4,9 @@ name: Deploy website
 
 on:
   push:
-    branches: [main]
+    # The github-pages environment currently only allows this repo's original publishing branch,
+    # so deploy from it as well as from main.
+    branches: [main, claude/hopeful-hopper-scznbh]
     paths: ['website/**', '.github/workflows/pages.yml']
   workflow_dispatch:
 
