@@ -28,6 +28,17 @@
   function sub(text, sec = 3.5, who) { const el = $('#sub'); el.textContent = ''; if (who) { const b = document.createElement('b'); b.textContent = who + ': '; el.append(b); } el.append(text); el.hidden = false; clearTimeout(subT); subT = setTimeout(() => { el.hidden = true; }, sec * 1000); }
   function playLines(lines, done) { let i = 0; (function n() { if (i >= lines.length) { if (done) setTimeout(done, 300); return; } const [w, t] = lines[i++], sec = Math.max(2.6, t.length / 13); sub(t, sec, w); setTimeout(n, sec * 1000 + 300); })(); }
 
+  function objective() {
+    if (S.flags.solved) return S.ended ? 'انتهت القضية. ارجع إلى خريطة عُمان.' : 'انزل إلى السرداب تحت البيت الثامن.';
+    if (ok(C.accusation.unlock)) return 'عندك ما يكفي. اتّهم المسؤول من مذكرات الأدلة.';
+    const d = C.deductions.find((x) => !S.deductions.includes(x.id) && x.proof.every((p) => S.clues.includes(p)));
+    if (d) return 'اربط الأدلة في المذكرات: ' + d.q;
+    if (cur) { if (cur.sc.npc && cur.sc.npc.id !== 'khalfan' && !S.talked[cur.sc.npc.id]) return 'تحدّث مع ' + C.people[cur.sc.npc.id].name + '.'; if (cur.sc.clues.some((c) => !S.clues.includes(c.id))) return 'حرّك المصباح وافحص المكان.'; }
+    const next = Object.keys(C.scenes).find((sid) => open(sid) && C.scenes[sid].clues.some((c) => !S.clues.includes(c.id)));
+    if (next) return 'اذهب إلى: ' + C.scenes[next].name + '.';
+    return 'اعرض الأدلة على الناس. بعضهم يعرف أكثر مما يقول.';
+  }
+
   // ---------- title ----------
   function renderTitle() { $('#btn-continue').hidden = !(S.clues.length || Object.keys(S.talked).length); $('#title-progress').textContent = S.clues.length ? `قضية خلفان: ${fmt(S.clues.length)} من ${fmt(TOTAL)} دليلاً` : ''; }
   $('#btn-start').addEventListener('click', () => { SND.init(); SND.click(); if (S.clues.length || Object.keys(S.talked).length) { $('#confirm-new').hidden = false; return; } goOman(); });
@@ -53,6 +64,9 @@
       pins.appendChild(b);
     });
     const rc = window.REGION_CASES.find((r) => r.id === selRegion);
+    const imgs = { muscat: 'assets/scenes/muscat.jpg', jabal: 'assets/scenes/jabal.jpg', sharqiya: 'assets/scenes/sharqiya.jpg' };
+    if (rc.id === 'nizwa' && !imgs.nizwa) { if (!goOman.nz) { const r = ART.render(ART.scenes.haratGate, 0.4, []); goOman.nz = r.lit.toDataURL('image/jpeg', 0.8); } imgs.nizwa = goOman.nz; }
+    $('#region-img').style.backgroundImage = imgs[rc.id] ? `url(${imgs[rc.id]})` : '';
     $('#region-name').textContent = rc.name; $('#region-title').textContent = '«' + rc.title + '»'; $('#region-hook').textContent = rc.hook;
     $('#region-go').hidden = !rc.ready; $('#region-soon').hidden = !!rc.ready;
     $('#region-progress').textContent = rc.ready ? `${fmt(S.clues.length)} / ${fmt(TOTAL)} دليلاً` : 'تُبنى في مرحلة قادمة';
@@ -66,7 +80,7 @@
   // ---------- case map ----------
   function goCase() {
     show('casemap'); SND.ambience(0.3); checkUnlocks();
-    $('#case-progress').textContent = `${fmt(S.clues.length)} / ${fmt(TOTAL)}`;
+    $('#case-progress').textContent = `${fmt(S.clues.length)} / ${fmt(TOTAL)}`; $('#case-obj').textContent = objective();
     const nodes = $('#case-nodes'); nodes.innerHTML = '';
     Object.entries(C.scenes).forEach(([sid, sc]) => {
       const o = open(sid), found = sc.clues.filter((c) => S.clues.includes(c.id)).length;
@@ -94,7 +108,8 @@
     resizeScene();
     const scale = Math.min(2, view.s * (devicePixelRatio || 1));
     const art = ART.scenes[sc.art];
-    cur = { sid, sc, art: ART.render(art, scale, sc.clues), t0: performance.now(), dust: Array.from({ length: 60 }, () => [Math.random() * 1600, Math.random() * 900, Math.random() * 0.4 + 0.1]) };
+    if (sc.photo && !sc._img) { const im = new Image(); im.onload = () => { sc._img = im; if (cur && cur.sid === sid) cur.art = ART.renderPhoto(im, scale, sc.clues); }; im.src = sc.photo; }
+    cur = { sid, sc, art: sc._img ? ART.renderPhoto(sc._img, scale, sc.clues) : ART.render(art, scale, sc.clues), t0: performance.now(), dust: Array.from({ length: 60 }, () => [Math.random() * 1600, Math.random() * 900, Math.random() * 0.4 + 0.1]) };
     torch.x = torch.tx = 800; torch.y = torch.ty = 560; ghost = null; hint = null;
     updateSceneHud();
     SND.ambience(sc.event === 'finale' ? 0.05 : 0.3);
@@ -105,7 +120,7 @@
   function stopScene() { cancelAnimationFrame(raf); cur = null; }
   function resizeScene() { const w = innerWidth, h = innerHeight, dpr = Math.min(2, devicePixelRatio || 1); cv.width = w * dpr; cv.height = h * dpr; cv.style.width = w + 'px'; cv.style.height = h + 'px'; view.s = Math.min(w / 1600, h / 900); view.ox = (w - 1600 * view.s) / 2; view.oy = (h - 900 * view.s) / 2; view.dpr = dpr; }
   addEventListener('resize', () => { if (cur) enterScene(cur.sid); });
-  function updateSceneHud() { if (!cur) return; const sc = cur.sc, f = sc.clues.filter((c) => S.clues.includes(c.id)).length; $('#scene-count').textContent = sc.clues.length ? `${fmt(f)} / ${fmt(sc.clues.length)} أدلة هنا` : ''; $('#total-count').textContent = `${fmt(S.clues.length)} / ${fmt(TOTAL)}`; }
+  function updateSceneHud() { if (!cur) return; const sc = cur.sc, f = sc.clues.filter((c) => S.clues.includes(c.id)).length; $('#obj-text').textContent = objective(); $('#scene-count').textContent = sc.clues.length ? `· ${fmt(f)} / ${fmt(sc.clues.length)} أدلة هنا` : ''; $('#total-count').textContent = `${fmt(S.clues.length)} / ${fmt(TOTAL)}`; }
 
   function loop(now) {
     raf = requestAnimationFrame(loop); if (!cur) return;
@@ -131,6 +146,7 @@
     cur.sc.clues.forEach((c) => { if (S.clues.includes(c.id)) { ctx.fillStyle = 'rgba(207,168,120,0.8)'; ctx.beginPath(); ctx.arc(c.x, c.y - 34 * (c.s || 1) - 6, 4, 0, 7); ctx.fill(); } });
     // prompt
     const focus = focusAt(torch.x, torch.y);
+    $('#btn-interact').classList.toggle('ready', !!focus);
     const pr = $('#scene-prompt'); if (focus) { pr.textContent = focus.kind === 'npc' ? 'المس للتحدث مع ' + C.people[focus.ref.id].name : S.clues.includes(focus.ref.id) ? focus.ref.title : 'المس للفحص'; pr.hidden = false; pr.style.left = (view.ox + torch.x * view.s) + 'px'; pr.style.top = (view.oy + (torch.y - R * 0.5) * view.s) + 'px'; } else pr.hidden = true;
   }
   function drawGhost(gh) {
@@ -164,6 +180,7 @@
     overlayGuard = performance.now() + 350;
     if (f.kind === 'clue') inspect(f.ref); else talk(f.ref.id);
   });
+  $('#btn-interact').addEventListener('click', () => { const f = focusAt(torch.x, torch.y); if (!f) { sub('وجّه المصباح نحو شيء أو شخص.', 2); return; } if (f.kind === 'clue') inspect(f.ref); else talk(f.ref.id); });
   $('#btn-hint').addEventListener('click', () => { if (!cur) return; const c = cur.sc.clues.find((k) => !S.clues.includes(k.id)); if (c) { hint = { x: c.x, y: c.y - 10, t: performance.now() }; SND.click(); } else sub('لا أدلة أخرى هنا.', 2); });
   $('#btn-leave').addEventListener('click', () => { SND.click(); goCase(); });
   $('#btn-scene-board').addEventListener('click', () => openBoard());
@@ -209,6 +226,7 @@
       if (q.length) { const [w, t] = q.shift(); line.textContent = ''; const bb = document.createElement('b'); bb.textContent = w + ': '; line.append(bb, t); next.textContent = q.length ? 'التالي' : 'إنهاء'; pres.hidden = q.length > 0 || id === 'khalfan'; SND.page(); return; }
       dlg.hidden = true;
       if (first) { S.talked[id] = true; if (T.gives && !S.clues.includes(T.gives)) { inspect(allClues[T.gives]); } save(); checkUnlocks(); }
+      updateSceneHud();
       if (done) done();
     }
     next.onclick = step;
@@ -275,9 +293,9 @@
     if (d.proof.every((p) => boardSel.includes(p))) { S.deductions.push(d.id); save(); SND.solve(); const msg = d.claim + ' · ' + d.unlockText; boardMode = null; boardSel = []; renderBoard(); el.querySelector('.msg').textContent = msg; checkUnlocks(); }
     else { SND.wrong(); el.querySelector('.msg').textContent = 'هذه الأدلة لا تثبت الجواب. فكّر في دليل مختلف.'; el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
   });
-  $('#board .close').addEventListener('click', () => { $('#board').hidden = true; boardMode = null; if (!$('#casemap').hidden) goCase(); });
+  $('#board .close').addEventListener('click', () => { $('#board').hidden = true; boardMode = null; if (!$('#casemap').hidden) goCase(); updateSceneHud(); });
 
   // ---------- boot ----------
   show('title'); renderTitle();
-  window.__otd = { get S() { return S; }, toScreen: (x, y) => [view.ox + x * view.s, view.oy + y * view.s], C, allClues, enterScene, inspect: (id) => inspect(allClues[id]), talk, goCase, goOman, openBoard, focusAt, open };
+  window.__otd = { get S() { return S; }, toScreen: (x, y) => [view.ox + x * view.s, view.oy + y * view.s], setTorch: (x, y) => { torch.tx = torch.x = x; torch.ty = torch.y = y; }, C, allClues, enterScene, inspect: (id) => inspect(allClues[id]), talk, goCase, goOman, openBoard, focusAt, open };
 })();

@@ -183,6 +183,21 @@
     return { lit, dark };
   };
 
+  /** Same as render(), but the lit layer is a real photograph (cover-fitted to 16:9). */
+  A.renderPhoto = (img, scale, hotspots) => {
+    const make = () => { const cv = document.createElement('canvas'); cv.width = Math.round(A.W * scale); cv.height = Math.round(A.H * scale); const c = cv.getContext('2d'); c.scale(scale, scale); return [cv, c]; };
+    const [lit, lc] = make(); emitList = [];
+    const k = Math.max(A.W / img.width, A.H / img.height), w = img.width * k, h = img.height * k;
+    lc.drawImage(img, (A.W - w) / 2, (A.H - h) / 2, w, h);
+    (hotspots || []).forEach((hh) => { if (!hh.hidden) A.object(lc, hh.obj, hh.x, hh.y, hh.s || 1); });
+    const emits = emitList; emitList = null;
+    const [dark, dc] = make(); dc.drawImage(lit, 0, 0, A.W, A.H);
+    dc.globalCompositeOperation = 'multiply'; dc.fillStyle = '#4a5578'; dc.fillRect(0, 0, A.W, A.H);
+    dc.globalCompositeOperation = 'source-over'; dc.fillStyle = 'rgba(3,5,12,0.25)'; dc.fillRect(0, 0, A.W, A.H);
+    emits.forEach((fn) => fn(dc));
+    return { lit, dark };
+  };
+
   // =====================================================================
   // SCENES — case 1 (Nizwa-inspired interior: fictional town Wadi Al-Sukoon)
   // =====================================================================

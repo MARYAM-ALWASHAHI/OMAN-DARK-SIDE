@@ -31,7 +31,7 @@
   .kicker { color: var(--sand); font-size: .8rem; letter-spacing: .08em; margin: 0; }
 
   /* ---------- title ---------- */
-  #title { background: #000 url(assets/hero.jpg) 30% 50% / cover no-repeat; }
+  #title { background: #000 url(assets/scenes/muscat.jpg) 30% 50% / cover no-repeat; }
   #title::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(4,6,10,.15) 0%, rgba(4,6,10,.55) 45%, rgba(4,6,10,.95) 100%), linear-gradient(0deg, rgba(4,6,10,.9), rgba(4,6,10,0) 50%); }
   #title .inner { position: relative; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 14px; max-width: 560px; }
   .logo { margin: 0; line-height: .92; direction: ltr; text-align: right; align-self: stretch; }
@@ -60,6 +60,7 @@
   #region-title { margin: 0; color: var(--sand2); font-size: 1.15rem; font-weight: 700; }
   #region-hook { margin: 0; color: var(--fg); line-height: 1.8; opacity: .9; }
   #region-progress { color: var(--muted); font-size: .85rem; margin: 0; }
+  .rimg { aspect-ratio: 16 / 9; border-radius: 10px; border: 1px solid var(--line); background: linear-gradient(135deg, #1a2230, #0b0f16) center / cover no-repeat; flex: none; }
   .rclist { display: grid; gap: 6px; margin-top: auto; }
   .rc { display: flex; justify-content: space-between; background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; font-size: .92rem; }
   .rc span { color: var(--muted); font-size: .8rem; } .rc.sel { border-color: var(--sand); }
@@ -80,11 +81,28 @@
   .node.done i { background: var(--ok); box-shadow: 0 0 12px rgba(143,199,154,.5); }
   .node.locked i { background: #3a3f48; box-shadow: none; } .node.locked .n { color: #6b717a; }
   .cmfoot { position: absolute; z-index: 2; bottom: max(12px, env(safe-area-inset-bottom)); left: max(14px, env(safe-area-inset-left)); right: max(14px, env(safe-area-inset-right)); display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+  .cobj { margin: 6px 0 0; color: #f0b52a; font-size: .9rem; }
   #btn-accuse-hint { color: var(--ember); font-size: .9rem; margin: 0; }
 
   /* ---------- scene ---------- */
   #scene { background: #030407; }
   #scene-canvas { position: absolute; inset: 0; touch-action: none; display: block; }
+  .hud-tl { position: absolute; top: max(10px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left)); display: grid; gap: 8px; max-width: min(42vw, 360px); pointer-events: none; direction: rtl; }
+  .hlogo { direction: ltr; text-align: left; line-height: .9; text-shadow: 0 2px 10px #000; }
+  .hlogo b { display: block; font-size: 1.6rem; font-weight: 900; letter-spacing: -.01em; } .hlogo span { display: block; color: var(--ember); font-weight: 900; font-size: .78rem; letter-spacing: .06em; }
+  .obj { display: flex; gap: 10px; align-items: flex-start; background: linear-gradient(90deg, rgba(8,10,16,.0), rgba(8,10,16,.72)); border-radius: 8px; padding: 8px 12px; }
+  .obj .dia { width: 14px; height: 14px; border: 2px solid #f0b52a; transform: rotate(45deg); margin-top: 4px; flex: none; box-shadow: 0 0 10px rgba(240,181,42,.5); }
+  .obj b { color: #f0b52a; font-size: .92rem; } .obj p { margin: 2px 0; font-size: .88rem; line-height: 1.5; } .obj small { color: var(--muted); font-size: .74rem; font-variant-numeric: tabular-nums; }
+  .hud-r { position: absolute; right: max(14px, env(safe-area-inset-right)); top: 50%; transform: translateY(-50%); display: grid; gap: 10px; }
+  .rb { position: relative; width: 66px; display: grid; justify-items: center; gap: 3px; background: none; border: 0; padding: 0; }
+  .rb svg { width: 50px; height: 50px; padding: 12px; border-radius: 50%; background: rgba(14,17,24,.8); border: 1px solid rgba(255,255,255,.2); fill: none; stroke: #f2ece0; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
+  .rb span { font-size: .68rem; text-shadow: 0 1px 4px #000; white-space: nowrap; }
+  .rb em { position: absolute; top: -4px; left: 2px; font-style: normal; background: var(--ember); color: #fff; font-size: .62rem; border-radius: 999px; padding: 1px 6px; font-variant-numeric: tabular-nums; }
+  .interact { position: absolute; right: max(96px, calc(env(safe-area-inset-right) + 86px)); bottom: max(16px, env(safe-area-inset-bottom)); width: 86px; height: 86px; border-radius: 50%; background: rgba(14,17,24,.82); border: 2px solid rgba(255,255,255,.35); display: grid; place-items: center; align-content: center; gap: 2px; box-shadow: 0 6px 18px rgba(0,0,0,.6); }
+  .interact svg { width: 34px; height: 34px; fill: none; stroke: #fff; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; } .interact span { font-size: .74rem; }
+  .interact.ready { border-color: #f0b52a; box-shadow: 0 0 0 4px rgba(240,181,42,.25), 0 6px 18px rgba(0,0,0,.6); }
+  .hud-bl { position: absolute; left: max(14px, env(safe-area-inset-left)); bottom: max(14px, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 12px; background: rgba(8,10,16,.7); border-radius: 8px; padding: 6px 12px; font-size: .85rem; font-variant-numeric: tabular-nums; pointer-events: none; }
+  .hud-bl svg { width: 20px; height: 20px; fill: #e8d9a8; }
   .shead { position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); left: max(14px, env(safe-area-inset-left)); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; pointer-events: none; }
   .shead > * { pointer-events: auto; }
   .stitle { background: var(--panel); border-right: 3px solid var(--sand); border-radius: 6px; padding: 6px 12px; }
@@ -92,12 +110,12 @@
   .sbtns { display: flex; gap: 6px; }
   .sbtns button { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; font-size: .85rem; }
   #scene-prompt { position: absolute; transform: translate(-50%, -100%); background: rgba(10,13,20,.85); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: .85rem; pointer-events: none; white-space: nowrap; }
-  .shelp { position: absolute; bottom: max(12px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); color: rgba(239,232,219,.55); font-size: .8rem; pointer-events: none; white-space: nowrap; }
+  .shelp { position: absolute; bottom: max(12px, env(safe-area-inset-bottom)); left: 50%; display: none; transform: translateX(-50%); color: rgba(239,232,219,.55); font-size: .8rem; pointer-events: none; white-space: nowrap; }
 
   /* ---------- overlays ---------- */
   #sub { position: fixed; z-index: 30; bottom: max(40px, calc(env(safe-area-inset-bottom) + 30px)); left: 50%; transform: translateX(-50%); width: min(92vw, 720px); text-align: center; font-size: clamp(1rem, 2.4vw, 1.2rem); line-height: 1.7; text-shadow: 0 2px 8px #000, 0 0 2px #000; pointer-events: none; }
   #sub b { color: var(--sand); }
-  #toast { position: fixed; z-index: 40; top: max(64px, calc(env(safe-area-inset-top) + 54px)); left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--sand); border-radius: 999px; padding: 7px 16px; font-size: .9rem; pointer-events: none; white-space: nowrap; }
+  #toast { position: fixed; z-index: 40; top: auto; bottom: max(120px, calc(env(safe-area-inset-bottom) + 110px)); left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--sand); border-radius: 999px; padding: 7px 16px; font-size: .9rem; pointer-events: none; white-space: nowrap; }
   #toast b { color: var(--sand); margin-inline-end: 8px; }
   .in { animation: pop .4s ease-out; } @keyframes pop { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
   .modal { position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; background: rgba(3,4,7,.72); padding: 14px; }
@@ -166,6 +184,7 @@
   <div class="mapcol"><div id="oman-map"><canvas id="oman-canvas"></canvas><div id="oman-pins"></div></div></div>
   <aside class="side pad">
     <p class="kicker">خريطة القضايا</p>
+    <div id="region-img" class="rimg"></div>
     <h2 id="region-name"></h2>
     <p id="region-title"></p>
     <p id="region-hook"></p>
@@ -178,14 +197,23 @@
 
 <section id="casemap" class="screen" hidden>
   <div class="cmwrap"><div id="case-nodes"></div></div>
-  <div class="cmhead"><div><h2>وادي السكون</h2><span class="sub2">قضية «المسح الأخير» · الأدلة <span id="case-progress"></span></span></div><button id="btn-title" class="btn ghost small" type="button">القائمة</button></div>
+  <div class="cmhead"><div><h2>وادي السكون</h2><span class="sub2">قضية «المسح الأخير» · الأدلة <span id="case-progress"></span></span><p id="case-obj" class="cobj"></p></div><button id="btn-title" class="btn ghost small" type="button">القائمة</button></div>
   <div class="cmfoot"><p id="btn-accuse-hint" hidden>عندك ما يكفي للاتهام. افتح لوحة الأدلة.</p><div class="row"><button id="btn-board" class="btn" type="button">لوحة الأدلة</button><button id="btn-to-oman" class="btn ghost" type="button">خريطة عُمان</button></div></div>
 </section>
 
 <section id="scene" class="screen" hidden>
   <canvas id="scene-canvas" aria-label="المشهد"></canvas>
-  <div class="shead"><div class="stitle"><b id="scene-name"></b><span id="scene-count"></span></div>
-    <div class="sbtns"><button id="btn-hint" type="button">تلميح</button><button id="btn-scene-board" type="button">الأدلة <span id="total-count"></span></button><button id="btn-leave" type="button">الخريطة</button></div></div>
+  <div class="hud-tl">
+    <div class="hlogo" lang="en"><b>OMAN</b><span>THE DARK SIDE</span></div>
+    <div class="obj"><span class="dia"></span><div><b>المهمة الرئيسية</b><p id="obj-text"></p><small id="scene-name"></small> <small id="scene-count"></small></div></div>
+  </div>
+  <div class="hud-r">
+    <button id="btn-scene-board" type="button" class="rb"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z M15 3v4h4 M9 11h7 M9 15h7" /></svg><span>مذكرات الأدلة</span><em id="total-count"></em></button>
+    <button id="btn-leave" type="button" class="rb"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14" /></svg><span>الخريطة</span></button>
+    <button id="btn-hint" type="button" class="rb"><svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 1 3.5 10.9V17h-7v-3.1A6 6 0 0 1 12 3z M9 20h6" /></svg><span>تلميح</span></button>
+  </div>
+  <button id="btn-interact" type="button" class="interact"><svg viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12 M11 11V4.5a1.5 1.5 0 0 1 3 0V12 M14 11.5V6a1.5 1.5 0 0 1 3 0v7c0 4-2.5 7-6 7-2.5 0-4-1.2-5.5-3.5L3.8 13a1.5 1.5 0 0 1 2.5-1.6L8 13" /></svg><span>تفاعل</span></button>
+  <div class="hud-bl"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" /></svg><span>الشتاء</span><span>18°C</span><span id="clock">22:40</span></div>
   <div id="scene-prompt" hidden></div>
   <div class="shelp">اسحب لتحريك المصباح · المس للفحص</div>
 </section>
