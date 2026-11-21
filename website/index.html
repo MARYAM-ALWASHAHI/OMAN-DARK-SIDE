@@ -10,9 +10,6 @@
 <meta property="og:description" content="استكشف عُمان. اكتشف المجهول. عرض تجريبي قابل للعب على الجوال والكمبيوتر.">
 <meta property="og:image" content="assets/hero.jpg">
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Reem+Kufi:wght@500;700&display=swap">
 <style>
 /* Layout: a dusk-lit case file — hero scene, then dossier sections separated by thin sand rules. Single dark theme by design. */
 :root {
@@ -24,14 +21,15 @@
   --ember: #b8382c;
   --fg: #ebe4d8;
   --muted: #a1a8b2;
-  --f-display: "Reem Kufi", "IBM Plex Sans Arabic", Tahoma, sans-serif;
-  --f-latin: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
-  --f-body: "IBM Plex Sans Arabic", Tahoma, "Segoe UI", sans-serif;
+  /* iPhone system typeface (SF Arabic / SF Pro); other devices use their own system font */
+  --f-display: -apple-system, BlinkMacSystemFont, "SF Arabic", "SF Pro Display", system-ui, "Segoe UI", Roboto, Tahoma, sans-serif;
+  --f-latin: -apple-system, BlinkMacSystemFont, "SF Arabic", "SF Pro Display", system-ui, "Segoe UI", Roboto, Tahoma, sans-serif;
+  --f-body: -apple-system, BlinkMacSystemFont, "SF Arabic", "SF Pro Text", system-ui, "Segoe UI", Roboto, Tahoma, sans-serif;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body { margin: 0; background: var(--night); color: var(--fg); font-family: var(--f-body); font-size: 16px; line-height: 1.75; }
+body { margin: 0; background: var(--night); color: var(--fg); font-family: var(--f-body); -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; font-size: 16px; line-height: 1.75; }
 img { max-width: 100%; }
 a { color: var(--sand); }
 a:focus-visible, button:focus-visible { outline: 2px solid var(--sand); outline-offset: 3px; }
@@ -41,7 +39,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--sand); outline-
 .nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: rgba(14,17,23,.86); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--night); }
 .nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 10px; }
-.brand { font-family: var(--f-latin); font-weight: 900; font-size: 1.15rem; letter-spacing: .03em; direction: ltr; color: var(--fg); text-decoration: none; white-space: nowrap; }
+.brand { font-family: var(--f-latin); font-weight: 800; font-size: 1.15rem; letter-spacing: .03em; direction: ltr; color: var(--fg); text-decoration: none; white-space: nowrap; }
 .brand span { color: var(--ember); }
 .nav ul { list-style: none; display: flex; gap: 18px; margin: 0; padding: 0; font-size: .92rem; }
 .nav ul a { color: var(--muted); text-decoration: none; }
@@ -53,7 +51,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .hero img { display: block; width: 100%; height: clamp(380px, 52vw, 560px); object-fit: cover; object-position: 30% 50%; filter: saturate(.8) brightness(.6); }
 .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, var(--night) 6%, rgba(14,17,23,.5) 50%, rgba(14,17,23,0) 85%); pointer-events: none; }
 .hero .copy { position: absolute; inset: auto 0 0 0; z-index: 1; padding-block: 0 2.2rem; }
-.latin { font-family: var(--f-latin); font-weight: 900; letter-spacing: .02em; line-height: .9; direction: ltr; text-align: right; font-size: clamp(2.7rem, 8vw, 5.6rem); margin: 0; }
+.latin { font-family: var(--f-latin); font-weight: 800; letter-spacing: -.01em; line-height: .95; direction: ltr; text-align: right; font-size: clamp(2.7rem, 8vw, 5.6rem); margin: 0; }
 .latin span { color: var(--ember); display: block; }
 .ar-title { font-family: var(--f-display); font-weight: 700; font-size: clamp(1.3rem, 3.4vw, 2rem); margin: .5rem 0 .2rem; color: var(--sand); }
 .tagline { margin: 0 0 1.2rem; font-size: 1.05rem; }
@@ -191,7 +189,7 @@ footer p { max-width: none; }
   <div class="status" aria-label="حالة المشروع">
     <span class="chip warn">اللعبة الكاملة قيد التطوير</span>
     <span class="chip">عرض تجريبي للويب متاح الآن</span>
-    <span class="chip">أندرويد · آيفون · آيباد (مخطط)</span>
+    <span class="chip">للجوال فقط: آيفون وأندرويد (مخطط)</span>
     <span class="chip">Unreal Engine 5</span>
   </div>
 </div>
@@ -372,7 +370,7 @@ footer p { max-width: none; }
     </div>
     <ol class="road" aria-label="مراحل التطوير">
       <li><span class="code">WEB</span><span>عرض «حارة الرماد» التجريبي للويب</span><span class="state done">متاح للعب</span></li>
-      <li><span class="code">M1</span><span>تحكم الشخصية والكاميرا في Unreal</span><span class="state wip">الكود مكتوب، لم يُختبر</span></li>
+      <li><span class="code">M1</span><span>الشخصية والكاميرا من منظور الشخص الثالث في Unreal</span><span class="state wip">الكود مكتوب، لم يُختبر</span></li>
       <li><span class="code">M1b</span><span>التحكم باللمس للجوال والآيباد في Unreal</span><span class="state wip">الكود مكتوب، لم يُختبر</span></li>
       <li><span class="code">M2</span><span>خريطة وادي السكون الأولية</span><span class="state">لم يبدأ</span></li>
       <li><span class="code">M3</span><span>جمع الأدلة ودفتر التحقيق</span><span class="state">لم يبدأ</span></li>

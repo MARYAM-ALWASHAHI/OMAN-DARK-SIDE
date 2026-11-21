@@ -6,7 +6,7 @@
 class AOTDCharacter;
 
 /**
- * On-screen touch buttons for phone/iPad: JUMP, RUN (toggle), CAMERA (FP/TP).
+ * On-screen touch buttons for phone/iPad: CROUCH (toggle), RUN (toggle), JUMP.
  * Movement and look use the engine's virtual joysticks (see Config/DefaultInput.ini).
  * Built in C++ Slate so it needs no editor assets; replace with a UMG widget during the UI milestone.
  */
@@ -23,7 +23,7 @@ private:
 	TSharedRef<SWidget> MakeButton(const TAttribute<FText>& Label, FSimpleDelegate OnPressed, FSimpleDelegate OnReleased);
 
 	FText GetRunLabel() const;
-	FText GetCameraLabel() const;
+	FText GetCrouchLabel() const;
 
 	TWeakObjectPtr<AOTDCharacter> Character;
 };

@@ -8,15 +8,31 @@
   const $ = (s) => document.querySelector(s);
   const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 
+  // ================= Quality tiers =================
+  // ultra : native screen resolution (up to 3x), 4x texture detail, large shadow maps
+  // high  : up to 2x resolution, 2x texture detail
+  // medium: ~1.25x resolution, base textures, small shadow maps
+  const DPR = window.devicePixelRatio || 1;
+  const QUALITY = {
+    ultra: { tex: 4, dpr: Math.min(DPR, 3), moon: 2048, spot: 1024, aa: true },
+    high: { tex: 2, dpr: Math.min(DPR, 2), moon: 2048, spot: 1024, aa: true },
+    medium: { tex: 1, dpr: Math.min(DPR, 1.25), moon: 1024, spot: 512, aa: false },
+  };
+  // Default to the top tier unless the browser reports a low-memory device
+  let qName = (navigator.deviceMemory && navigator.deviceMemory < 4) ? 'high' : 'ultra';
+  try { const saved = localStorage.getItem('otd-quality'); if (QUALITY[saved]) qName = saved; } catch (e) { /* storage unavailable */ }
+  const Q = QUALITY[qName];
+
   // ================= Renderer / scene =================
   const canvas = $('#scene');
   let renderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: !isTouch, powerPreference: 'high-performance' });
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: Q.aa, powerPreference: 'high-performance' });
   } catch (e) {
     $('#nogl').hidden = false; $('#start').hidden = true; return;
   }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isTouch ? 1.5 : 2));
+  const MAX_TEX = Math.min(4096, renderer.capabilities.maxTextureSize || 4096);
+  renderer.setPixelRatio(Q.dpr);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputEncoding = THREE.sRGBEncoding;
@@ -33,9 +49,21 @@
 
   // ================= Procedural textures =================
   function mulberry(seed) { return function () { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-  function tex(size, draw, srgb = true) {
-    const c = document.createElement('canvas'); c.width = c.height = size;
-    draw(c.getContext('2d'), size);
+  function tex(size, draw, srgb = true, detail = 0) {
+    const real = Math.min(MAX_TEX, size * Q.tex);
+    const c = document.createElement('canvas'); c.width = c.height = real;
+    const g = c.getContext('2d');
+    g.scale(real / size, real / size);
+    draw(g, size);
+    if (detail && real > size) {
+      // micro grain at full resolution: what makes the higher tiers look sharper up close
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      const r = mulberry(real + size), n = Math.floor(real * real / 28);
+      for (let i = 0; i < n; i++) {
+        g.fillStyle = r() < 0.5 ? `rgba(255,240,215,${r() * detail})` : `rgba(0,0,0,${r() * detail * 1.3})`;
+        g.fillRect(r() * real, r() * real, 1, 1);
+      }
+    }
     const t = new THREE.CanvasTexture(c);
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
@@ -69,7 +97,8 @@
   }
 
   // Weathered mud plaster with exposed sun-dried bricks underneath
-  const plasterMap = tex(512, (g, s) => {
+  const texD = (size, draw) => tex(size, draw, true, 0.12);
+  const plasterMap = texD(512, (g, s) => {
     const r = mulberry(7);
     g.fillStyle = '#8c6d4f'; g.fillRect(0, 0, s, s);
     blotches(g, s, r, 40, '160,128,92', 0.5, 90);
@@ -96,7 +125,7 @@
     speckle(g, s, r, 6000, '255,255,255', '0,0,0', 2.5); cracks(g, s, r, 12, 0.9);
   }, false);
 
-  const groundMap = tex(512, (g, s) => {
+  const groundMap = texD(512, (g, s) => {
     const r = mulberry(21);
     g.fillStyle = '#6f5a44'; g.fillRect(0, 0, s, s);
     blotches(g, s, r, 50, '120,100,78', 0.45, 80);
@@ -113,7 +142,7 @@
   const groundBump = tex(256, (g, s) => { const r = mulberry(22); g.fillStyle = '#808080'; g.fillRect(0, 0, s, s); speckle(g, s, r, 9000, '255,255,255', '0,0,0', 3); }, false);
   groundBump.repeat.set(40, 40);
 
-  const stoneMap = tex(256, (g, s) => {
+  const stoneMap = texD(256, (g, s) => {
     const r = mulberry(31); g.fillStyle = '#4a4038'; g.fillRect(0, 0, s, s);
     for (let y = 0; y < s; y += 32) for (let x = -(y % 64 ? 24 : 0); x < s; x += 48) {
       const sv = r() * 36; g.fillStyle = `rgb(${92 + sv},${83 + sv * 0.9},${70 + sv * 0.8})`;
@@ -122,14 +151,14 @@
     speckle(g, s, r, 4000, '220,200,180', '0,0,0', 2);
   });
 
-  const woodMap = tex(256, (g, s) => {
+  const woodMap = texD(256, (g, s) => {
     const r = mulberry(41); g.fillStyle = '#4b3524'; g.fillRect(0, 0, s, s);
     for (let x = 0; x < s; x += 2) { g.fillStyle = `rgba(${r() < 0.5 ? '120,90,60' : '20,12,6'},${r() * 0.35})`; g.fillRect(x, 0, 1 + r() * 2, s); }
     speckle(g, s, r, 1500, '200,170,130', '0,0,0', 1.5);
   });
 
   // Faded teal-painted carved door with iron studs (common in older Omani houses — verify details)
-  const doorMap = tex(256, (g, s) => {
+  const doorMap = texD(256, (g, s) => {
     const r = mulberry(51);
     g.fillStyle = '#2f5652'; g.fillRect(0, 0, s, s);
     for (let x = 0; x < s; x += 32) { g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(x, 0, 2, s); }
@@ -365,14 +394,14 @@
   const moonLight = new THREE.DirectionalLight(0x9fb4e0, 0.42);
   moonLight.position.set(-30, 45, -40);
   moonLight.castShadow = true;
-  moonLight.shadow.mapSize.set(isTouch ? 1024 : 2048, isTouch ? 1024 : 2048);
+  moonLight.shadow.mapSize.set(Q.moon, Q.moon);
   Object.assign(moonLight.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 140 });
   moonLight.shadow.bias = -0.0008;
   moonLight.target.position.set(0, 0, 5); scene.add(moonLight, moonLight.target);
 
   const torch = new THREE.SpotLight(0xffe0b0, 2.6, 26, 0.48, 0.55, 1.6);
   torch.castShadow = true;
-  torch.shadow.mapSize.set(isTouch ? 512 : 1024, isTouch ? 512 : 1024);
+  torch.shadow.mapSize.set(Q.spot, Q.spot);
   torch.shadow.bias = -0.0005;
   torch.position.set(0.18, -0.2, 0.1);
   camera.add(torch); camera.add(torch.target); torch.target.position.set(0, -0.15, -5);
@@ -797,14 +826,14 @@
   }
 
   // Adaptive resolution: keep the frame rate up on weaker phones/tablets.
-  const perf = { frames: 0, time: 0, ratio: renderer.getPixelRatio(), min: 0.6 };
+  const perf = { frames: 0, time: 0, ratio: renderer.getPixelRatio(), min: 0.75 };
   function adapt(dt) {
     perf.frames++; perf.time += dt;
     if (perf.time < 2) return;
     const fps = perf.frames / perf.time; perf.frames = 0; perf.time = 0;
     let next = perf.ratio;
     if (fps < 40 && perf.ratio > perf.min) next = Math.max(perf.min, perf.ratio - 0.2);
-    else if (fps > 57 && perf.ratio < Math.min(window.devicePixelRatio || 1, isTouch ? 1.5 : 2)) next = perf.ratio + 0.1;
+    else if (fps > 57 && perf.ratio < Q.dpr) next = Math.min(Q.dpr, perf.ratio + 0.1);
     if (next !== perf.ratio) { perf.ratio = next; renderer.setPixelRatio(next); resize(); }
     perf.fps = Math.round(fps);
   }
@@ -841,13 +870,24 @@
     setObjective(0); renderNotebook();
   });
   $('#btn-again').addEventListener('click', () => location.reload());
+  function showQuality() {
+    document.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.q === qName)));
+    const w = Math.round(innerWidth * Q.dpr), h = Math.round(innerHeight * Q.dpr);
+    $('#q-info').textContent = `دقة العرض ${Math.max(w, h)}×${Math.min(w, h)} بكسل · تفاصيل الأسطح ${Math.min(MAX_TEX, 512 * Q.tex)} بكسل`;
+  }
+  document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+    if (b.dataset.q === qName) return;
+    try { localStorage.setItem('otd-quality', b.dataset.q); location.reload(); }
+    catch (e) { $('#q-info').textContent = 'تعذّر حفظ الإعداد في هذا المتصفح.'; }
+  }));
+  showQuality();
   document.addEventListener('visibilitychange', () => { if (document.hidden) A.suspend(); else A.resume(); });
 
   frame();
 
   // Test/debug hook (used by automated checks; harmless for players)
   window.__otd = {
-    state, items, player, perf,
+    state, items, player, perf, quality: qName,
     tp(x, z, yaw) { player.pos.x = x; player.pos.z = z; if (yaw != null) player.yaw = yaw; },
     interact: tryInteract, focus: () => focused && focused.id,
   };

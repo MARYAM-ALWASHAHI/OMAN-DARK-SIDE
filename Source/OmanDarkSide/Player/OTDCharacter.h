@@ -11,20 +11,14 @@ class UInputAction;
 class UInputMappingContext;
 struct FInputActionValue;
 
-UENUM(BlueprintType)
-enum class EOTDCameraMode : uint8
-{
-	ThirdPerson,
-	FirstPerson
-};
-
 /**
- * Player character for the vertical slice (Milestone 1).
+ * Player character for the mobile vertical slice. THIRD-PERSON ONLY (project decision).
  *
- * Provides: walk / sprint, mouse look, jump, and first/third-person camera switching.
- * Input: if no Input Action assets are assigned in a Blueprint subclass, a default
- * keyboard+mouse mapping is created at runtime so the prototype works with zero editor assets.
- * Body: a placeholder cylinder until a real character mesh exists (out of scope for M1).
+ * Provides: walk / run, crouch, jump, touch look, and a collision-aware follow camera.
+ * Input: touch (virtual joysticks + on-screen buttons) is the target. Keyboard/mouse/gamepad
+ * mappings exist only so the game can be tested inside the Unreal editor.
+ * If no Input Action assets are assigned in a Blueprint subclass, defaults are built at runtime.
+ * Body: a placeholder cylinder until the real Rashid character mesh exists.
  */
 UCLASS()
 class OMANDARKSIDE_API AOTDCharacter : public ACharacter
@@ -34,14 +28,9 @@ class OMANDARKSIDE_API AOTDCharacter : public ACharacter
 public:
 	AOTDCharacter();
 
-	UFUNCTION(BlueprintCallable, Category = "OTD|Camera")
-	void SetCameraMode(EOTDCameraMode NewMode);
-
-	UFUNCTION(BlueprintPure, Category = "OTD|Camera")
-	EOTDCameraMode GetCameraMode() const { return CameraMode; }
-
-	UFUNCTION(BlueprintCallable, Category = "OTD|Camera")
-	void ToggleCameraMode();
+	/** Crouch / stand up. Crouching also stops running. */
+	UFUNCTION(BlueprintCallable, Category = "OTD|Movement")
+	void ToggleCrouch();
 
 	UFUNCTION(BlueprintPure, Category = "OTD|Movement")
 	bool IsSprinting() const { return bIsSprinting; }
@@ -66,9 +55,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OTD|Camera")
 	TObjectPtr<UCameraComponent> ThirdPersonCamera;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OTD|Camera")
-	TObjectPtr<UCameraComponent> FirstPersonCamera;
-
 	/** Temporary visible body. Replace with a skeletal mesh in a later milestone. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OTD|Placeholder")
 	TObjectPtr<UStaticMeshComponent> PlaceholderBody;
@@ -80,21 +66,19 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "OTD|Movement", meta = (ClampMin = "50"))
 	float SprintSpeed = 600.f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "OTD|Camera")
-	EOTDCameraMode StartingCameraMode = EOTDCameraMode::ThirdPerson;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "OTD|Movement", meta = (ClampMin = "50"))
+	float CrouchSpeed = 150.f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "OTD|Camera")
+	/** Camera distance behind the character (the spring arm also pulls in when blocked by walls). */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "OTD|Camera", meta = (ClampMin = "120", ClampMax = "600"))
 	float ThirdPersonArmLength = 300.f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "OTD|Camera")
-	float FirstPersonEyeHeight = 64.f;
 
 	/** Print camera/sprint state changes on screen (useful for M1 testing). */
 	UPROPERTY(EditDefaultsOnly, Category = "OTD|Debug")
 	bool bShowDebugMessages = true;
 
 	// --- Mobile (phone / iPad) ---
-	/** Show on-screen JUMP / RUN / CAMERA buttons on touch devices. */
+	/** Show on-screen RUN / CROUCH / JUMP buttons on touch devices. */
 	UPROPERTY(EditDefaultsOnly, Category = "OTD|Mobile")
 	bool bEnableTouchControls = true;
 
@@ -119,7 +103,7 @@ protected:
 	TObjectPtr<UInputAction> SprintAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "OTD|Input")
-	TObjectPtr<UInputAction> ToggleCameraAction;
+	TObjectPtr<UInputAction> CrouchAction;
 
 private:
 	void BuildDefaultInputIfMissing();
@@ -137,6 +121,5 @@ private:
 
 	void DebugMessage(const FString& Message) const;
 
-	EOTDCameraMode CameraMode = EOTDCameraMode::ThirdPerson;
 	bool bIsSprinting = false;
 };

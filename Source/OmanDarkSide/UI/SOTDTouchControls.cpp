@@ -35,8 +35,8 @@ void SOTDTouchControls::Construct(const FArguments& InArgs)
 				.Visibility(EVisibility::SelfHitTestInvisible)
 				+ SVerticalBox::Slot().AutoHeight().Padding(FMargin(0.f, 8.f))
 				[
-					MakeButton(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SOTDTouchControls::GetCameraLabel)),
-						FSimpleDelegate::CreateLambda([WeakChar]() { if (WeakChar.IsValid()) { WeakChar->ToggleCameraMode(); } }),
+					MakeButton(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SOTDTouchControls::GetCrouchLabel)),
+						FSimpleDelegate::CreateLambda([WeakChar]() { if (WeakChar.IsValid()) { WeakChar->ToggleCrouch(); } }),
 						FSimpleDelegate())
 				]
 				+ SVerticalBox::Slot().AutoHeight().Padding(FMargin(0.f, 8.f))
@@ -83,7 +83,7 @@ FText SOTDTouchControls::GetRunLabel() const
 	return FText::FromString(Character.IsValid() && Character->IsSprinting() ? TEXT("WALK") : TEXT("RUN"));
 }
 
-FText SOTDTouchControls::GetCameraLabel() const
+FText SOTDTouchControls::GetCrouchLabel() const
 {
-	return FText::FromString(Character.IsValid() && Character->GetCameraMode() == EOTDCameraMode::FirstPerson ? TEXT("3RD") : TEXT("1ST"));
+	return FText::FromString(Character.IsValid() && Character->bIsCrouched ? TEXT("STAND") : TEXT("CROUCH"));
 }

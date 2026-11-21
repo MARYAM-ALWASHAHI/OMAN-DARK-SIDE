@@ -1,7 +1,7 @@
 # OMAN: THE DARK SIDE — Vertical Slice Production Blueprint (v0.2 — mobile only)
 
 Status: **planning document**. Nothing in this file is implemented unless the Milestone table says so.
-Engine: Unreal Engine 5 (C++ core + Blueprint/data configuration). **Platforms: mobile only — Android phones, iPhone and iPad.** There is no PC release. A Windows PC (and a Mac for iOS builds) is used only as the development machine. Quality goal: **as high as possible on high-end devices** (see §11). Every milestone is tested on a real phone and a real iPad.
+Engine: Unreal Engine 5 (C++ core + Blueprint/data configuration). **Platforms: mobile only — Android phones, iPhone and iPad.** There is no PC release. A Windows PC (and a Mac for iOS builds) is used only as the development machine. Quality goal: **as high as possible on high-end devices** (see §11). **Camera: third person only.** Final engine decision and mobile spec: `04_Mobile_Spec_and_Engine_Decision.md`. Every milestone is tested on a real phone and a real iPad.
 
 ---
 
@@ -28,7 +28,7 @@ Fictional place names (all must be checked so they don't match a real village; s
 
 **In scope (vertical slice)**
 - One region of about 1.5 × 1.5 km on a single World Partition map, streamed for mobile memory
-- One playable protagonist: walk, sprint, jump, first- and third-person cameras
+- One playable protagonist: walk, run, crouch, jump; third-person camera only
 - One drivable vehicle: a generic original 4x4 pickup
 - 5 interactive NPCs plus 6–10 ambient placeholder NPCs
 - 1 investigation mission, start to finish
@@ -145,7 +145,7 @@ Fictional place names (all must be checked so they don't match a real village; s
 
 | System | Slice version |
 |---|---|
-| Player controller | Walk, sprint, jump, look, FP/TP switch (**Milestone 1**) |
+| Player controller | Walk, run, crouch, jump, touch look; third-person follow camera with collision (**Milestone 1**) |
 | Interaction | Line-trace + `IOTDInteractable` interface + on-screen prompt |
 | Evidence | `UOTDEvidenceData` (Primary Data Asset) + evidence component on the player |
 | Mission | `UOTDMissionData` data asset (objectives + conditions) + `UOTDMissionSubsystem` |
@@ -213,7 +213,7 @@ Rule: C++ owns state and rules. Blueprints and data assets own content, which ke
 
 | # | Milestone | Done when (test) | Status |
 |---|---|---|---|
-| **M1** | Project foundation + player controller | Project compiles; in editor play you can walk/sprint/jump/look and switch FP/TP | **Code written, NOT compiled/tested** |
+| **M1** | Project foundation + third-person controller | Project compiles; in editor play you can walk/run/crouch/jump/look; camera stays out of walls | **Code written, NOT compiled/tested** |
 | **M1b** | Phone + iPad controls and mobile-only settings | First APK/IPA installs and runs; touch joysticks + buttons work on a real phone and iPad, landscape, safe zone respected | **Code written, NOT compiled/tested** |
 | M2 | Greybox level L_WadiAlSukoon | All areas reachable on foot; landmarks readable on a phone screen; stable 30 fps on the target phone | Not started |
 | M3 | Interaction + evidence | Pick up E1–E5 placeholders; notebook lists them; no duplicates | Not started |
