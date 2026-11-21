@@ -45,3 +45,48 @@
 - Uses `UInputAction::ValueType` and `UInputMappingContext::MapKey` at runtime. These are public in current UE5 versions.
   - If your version reports them as protected or deprecated, create the IA_*/IMC_Default assets in the editor and assign them to `BP_OTDCharacter` instead. The code then skips the runtime defaults.
 - Uses the engine asset `/Engine/BasicShapes/Cylinder`.
+
+---
+
+## M1b: Phone and iPad support (added after the initial M1)
+**Status: code and config written but never compiled, packaged, or run on a device.**
+
+### What was added
+- **Movement and look on touch:** the engine's built-in virtual joysticks (left stick moves, right stick looks), enabled in `Config/DefaultInput.ini`.
+- **Touch buttons** on the right edge of the screen: `1ST/3RD` (camera), `RUN/WALK` (a toggle, not a hold), and `JUMP` (`Source/OmanDarkSide/UI/SOTDTouchControls.*`).
+  - They are built in C++ Slate, so no editor assets are needed.
+  - They sit inside a safe zone, which keeps them clear of notches and rounded corners.
+- **Gamepad support:** left stick, right stick, A/Cross = jump, Y/Triangle = camera, left-stick click = sprint. This also works with Bluetooth controllers on iPad and iPhone.
+- **Android settings:** landscape only, arm64, Vulkan.
+- **iOS settings:** iPhone and iPad, landscape only, Metal.
+- The package/bundle ID `com.omandarkside.prototype` is a **placeholder**. Change it to your own.
+
+### Testing on PC first (quickest)
+1. Editor Preferences → Level Editor → Play → enable **Use Mouse for Touch**.
+2. Project Settings → Input → enable **Always Show Touch Interface** (temporarily).
+3. In `BP_OTDCharacter` (or in C++), enable `bForceTouchControls`.
+4. Play → **Mobile Preview ES3.1 (PIE)**. You should see the two joysticks and the three buttons, and they should work with the mouse.
+5. Turn the settings from steps 1–3 back off afterwards.
+
+### Testing on Android
+1. Install Android Studio and the SDK/NDK versions your UE version needs (see Epic's "Setting Up Android SDK and NDK" page for your version).
+2. Turn on Developer Mode and USB debugging on the phone, then connect it by cable.
+3. In UE: Platforms → Android → choose the device → **Launch**, or **Package Project** to get an APK.
+
+### Testing on iPhone and iPad
+- **Requires a Mac** with Xcode and an Apple Developer account for code signing. It can't be built from Windows alone; remote building from Windows to a Mac also needs a Mac.
+- Set your Bundle ID and signing team in Project Settings → iOS, then use Platforms → iOS → Launch or Package.
+
+### Device checklist
+- [ ] The game opens in landscape and fills the screen on both phone and iPad
+- [ ] The left joystick moves the character and the right one turns the camera (stick up = look up)
+- [ ] The three buttons respond and aren't cut off by the notch
+- [ ] RUN switches to WALK and the speed changes
+- [ ] 1ST hides the body and 3RD brings it back
+- [ ] Frame rate is acceptable. Enable the `stat fps` console command for a development build.
+
+### Known risks and incomplete parts
+- Lumen GI and Virtual Shadow Maps are PC-only. Mobile uses the separate mobile renderer, so it **will look different from PC**. Visuals and performance on actual devices haven't been verified.
+- The engine's built-in virtual joysticks are a legacy system. They should work with Enhanced Input through the gamepad keys, but this hasn't been tested. The plan is to replace them with a custom UMG joystick in the UI milestone.
+- Button text is English only. Arabic touch buttons need an Arabic font, which comes later in the UI milestone.
+- There are no separate device profiles or quality settings for weak phones yet.

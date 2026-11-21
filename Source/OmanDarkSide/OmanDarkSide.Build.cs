@@ -10,7 +10,7 @@ public class OmanDarkSide : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
-			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput"
+			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "Slate", "SlateCore"
 		});
 	}
 }

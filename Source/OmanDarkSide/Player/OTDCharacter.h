@@ -40,11 +40,22 @@ public:
 	UFUNCTION(BlueprintPure, Category = "OTD|Camera")
 	EOTDCameraMode GetCameraMode() const { return CameraMode; }
 
+	UFUNCTION(BlueprintCallable, Category = "OTD|Camera")
+	void ToggleCameraMode();
+
 	UFUNCTION(BlueprintPure, Category = "OTD|Movement")
 	bool IsSprinting() const { return bIsSprinting; }
 
+	UFUNCTION(BlueprintCallable, Category = "OTD|Movement")
+	void SetSprinting(bool bNewSprinting);
+
+	/** Used by the touch RUN button (holding a button while steering is awkward on a phone). */
+	UFUNCTION(BlueprintCallable, Category = "OTD|Movement")
+	void ToggleSprint() { SetSprinting(!bIsSprinting); }
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void PawnClientRestart() override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
@@ -82,6 +93,15 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "OTD|Debug")
 	bool bShowDebugMessages = true;
 
+	// --- Mobile (phone / iPad) ---
+	/** Show on-screen JUMP / RUN / CAMERA buttons on touch devices. */
+	UPROPERTY(EditDefaultsOnly, Category = "OTD|Mobile")
+	bool bEnableTouchControls = true;
+
+	/** Also show the touch buttons on PC (to test in PIE with "Use Mouse for Touch"). */
+	UPROPERTY(EditDefaultsOnly, Category = "OTD|Mobile")
+	bool bForceTouchControls = false;
+
 	// --- Input (optional assets; runtime defaults are built if any are left empty) ---
 	UPROPERTY(EditDefaultsOnly, Category = "OTD|Input")
 	TObjectPtr<UInputMappingContext> DefaultMappingContext;
@@ -107,9 +127,13 @@ private:
 
 	void HandleMove(const FInputActionValue& Value);
 	void HandleLook(const FInputActionValue& Value);
-	void HandleSprintStarted();
-	void HandleSprintStopped();
-	void HandleToggleCamera();
+	void HandleSprintStarted() { SetSprinting(true); }
+	void HandleSprintStopped() { SetSprinting(false); }
+
+	void ShowTouchControlsIfNeeded();
+	void HideTouchControls();
+
+	TSharedPtr<class SWidget> TouchControlsWidget;
 
 	void DebugMessage(const FString& Message) const;
 

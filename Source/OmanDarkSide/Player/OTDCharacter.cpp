@@ -17,6 +17,9 @@
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Engine/GameViewportClient.h"
+#include "UI/SOTDTouchControls.h"
+#include "HAL/PlatformMisc.h"
 
 AOTDCharacter::AOTDCharacter()
 {
@@ -81,6 +84,46 @@ void AOTDCharacter::PawnClientRestart()
 	Super::PawnClientRestart();
 	BuildDefaultInputIfMissing();
 	AddMappingContextToLocalPlayer();
+	ShowTouchControlsIfNeeded();
+}
+
+void AOTDCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	HideTouchControls();
+	Super::EndPlay(EndPlayReason);
+}
+
+void AOTDCharacter::ShowTouchControlsIfNeeded()
+{
+	if (TouchControlsWidget.IsValid() || !bEnableTouchControls || !IsLocallyControlled())
+	{
+		return;
+	}
+	if (!FPlatformMisc::SupportsTouchInput() && !bForceTouchControls)
+	{
+		return; // PC without touch: keyboard/mouse/gamepad only
+	}
+	UGameViewportClient* Viewport = GetWorld() ? GetWorld()->GetGameViewport() : nullptr;
+	if (!Viewport)
+	{
+		return;
+	}
+	TouchControlsWidget = SNew(SOTDTouchControls).Character(this);
+	Viewport->AddViewportWidgetContent(TouchControlsWidget.ToSharedRef(), 10);
+	UE_LOG(LogOTD, Log, TEXT("OTDCharacter: touch controls shown."));
+}
+
+void AOTDCharacter::HideTouchControls()
+{
+	if (!TouchControlsWidget.IsValid())
+	{
+		return;
+	}
+	if (UGameViewportClient* Viewport = GetWorld() ? GetWorld()->GetGameViewport() : nullptr)
+	{
+		Viewport->RemoveViewportWidgetContent(TouchControlsWidget.ToSharedRef());
+	}
+	TouchControlsWidget.Reset();
 }
 
 void AOTDCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -101,7 +144,7 @@ void AOTDCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	EIC->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 	EIC->BindAction(SprintAction, ETriggerEvent::Started, this, &AOTDCharacter::HandleSprintStarted);
 	EIC->BindAction(SprintAction, ETriggerEvent::Completed, this, &AOTDCharacter::HandleSprintStopped);
-	EIC->BindAction(ToggleCameraAction, ETriggerEvent::Started, this, &AOTDCharacter::HandleToggleCamera);
+	EIC->BindAction(ToggleCameraAction, ETriggerEvent::Started, this, &AOTDCharacter::ToggleCameraMode);
 }
 
 void AOTDCharacter::BuildDefaultInputIfMissing()
@@ -112,7 +155,7 @@ void AOTDCharacter::BuildDefaultInputIfMissing()
 		return;
 	}
 
-	UE_LOG(LogOTD, Log, TEXT("OTDCharacter: input assets not fully assigned, building runtime keyboard/mouse defaults."));
+	UE_LOG(LogOTD, Log, TEXT("OTDCharacter: input assets not fully assigned, building runtime keyboard/mouse/gamepad/touch defaults."));
 
 	auto MakeAction = [this](const TCHAR* Name, EInputActionValueType Type)
 	{
@@ -157,6 +200,29 @@ void AOTDCharacter::BuildDefaultInputIfMissing()
 	IMC->MapKey(JumpAction, EKeys::SpaceBar);
 	IMC->MapKey(SprintAction, EKeys::LeftShift);
 	IMC->MapKey(ToggleCameraAction, EKeys::V);
+
+	// Gamepad sticks. The mobile virtual joysticks emit these same keys, so this
+	// also drives phone/iPad touch movement and look. Single axes are mapped
+	// separately (Y axes swizzled into the 2D value's Y).
+	auto DeadZone = [IMC]() { return NewObject<UInputModifierDeadZone>(IMC); };
+	IMC->MapKey(MoveAction, EKeys::Gamepad_LeftX).Modifiers.Add(DeadZone());
+	{
+		FEnhancedActionKeyMapping& M = IMC->MapKey(MoveAction, EKeys::Gamepad_LeftY);
+		M.Modifiers.Add(DeadZone());
+		M.Modifiers.Add(Swizzle());
+	}
+	IMC->MapKey(LookAction, EKeys::Gamepad_RightX).Modifiers.Add(DeadZone());
+	{
+		FEnhancedActionKeyMapping& M = IMC->MapKey(LookAction, EKeys::Gamepad_RightY);
+		M.Modifiers.Add(DeadZone());
+		M.Modifiers.Add(Swizzle());
+		M.Modifiers.Add(NegateY()); // same convention as mouse: stick up = look up
+	}
+
+	// Gamepad buttons (PC controllers and MFi/Bluetooth controllers on iPad/phone).
+	IMC->MapKey(JumpAction, EKeys::Gamepad_FaceButton_Bottom);
+	IMC->MapKey(SprintAction, EKeys::Gamepad_LeftThumbstick);
+	IMC->MapKey(ToggleCameraAction, EKeys::Gamepad_FaceButton_Top);
 }
 
 void AOTDCharacter::AddMappingContextToLocalPlayer()
@@ -196,21 +262,18 @@ void AOTDCharacter::HandleLook(const FInputActionValue& Value)
 	AddControllerPitchInput(Axis.Y);
 }
 
-void AOTDCharacter::HandleSprintStarted()
+void AOTDCharacter::SetSprinting(bool bNewSprinting)
 {
-	bIsSprinting = true;
-	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
-	DebugMessage(TEXT("Sprint: ON"));
+	if (bIsSprinting == bNewSprinting)
+	{
+		return;
+	}
+	bIsSprinting = bNewSprinting;
+	GetCharacterMovement()->MaxWalkSpeed = bIsSprinting ? SprintSpeed : WalkSpeed;
+	DebugMessage(bIsSprinting ? TEXT("Sprint: ON") : TEXT("Sprint: OFF"));
 }
 
-void AOTDCharacter::HandleSprintStopped()
-{
-	bIsSprinting = false;
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
-	DebugMessage(TEXT("Sprint: OFF"));
-}
-
-void AOTDCharacter::HandleToggleCamera()
+void AOTDCharacter::ToggleCameraMode()
 {
 	SetCameraMode(CameraMode == EOTDCameraMode::ThirdPerson ? EOTDCameraMode::FirstPerson : EOTDCameraMode::ThirdPerson);
 }

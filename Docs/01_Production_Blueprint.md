@@ -1,7 +1,7 @@
 # OMAN: THE DARK SIDE — Vertical Slice Production Blueprint (v0.1)
 
 Status: **planning document**. Nothing in this file is implemented unless the Milestone table says so.
-Engine: Unreal Engine 5 (C++ core + Blueprint/data configuration). Platform: Windows PC first; mobile is a later phase.
+Engine: Unreal Engine 5 (C++ core + Blueprint/data configuration). Platforms: Windows PC + Android phones + iPhone/iPad, developed together; every milestone is also checked on a phone and an iPad.
 
 ---
 
@@ -47,7 +47,8 @@ Fictional place names (all must be checked so they don't match a real village; s
 - Full daily routines for NPCs (they stand or idle at fixed spots)
 - Recorded Omani voice acting (text and subtitles only)
 - Final evidence board with free-form theory linking (the slice has a simple version)
-- Mobile build, multiple endings, and any multiplayer
+- Multiple endings and any multiplayer
+- Mobile visual parity with PC: mobile uses simpler lighting, no Lumen
 
 ---
 
@@ -208,6 +209,7 @@ Rule: C++ owns state and rules. Blueprints and data assets own content, which ke
 | # | Milestone | Done when (test) | Status |
 |---|---|---|---|
 | **M1** | Project foundation + player controller | Project compiles; in PIE you can walk/sprint/jump/look and V toggles FP/TP | **Code written, NOT compiled/tested** |
+| **M1b** | Phone + iPad controls and platform settings | Touch joysticks + buttons work on a real Android phone and iPad, landscape, safe zone respected | **Code written, NOT compiled/tested** |
 | M2 | Greybox level L_WadiAlSukoon | All areas reachable on foot; landmarks readable from roads; 60 fps on dev PC | Not started |
 | M3 | Interaction + evidence | Pick up E1–E5 placeholders; notebook lists them; no duplicates | Not started |
 | M4 | Mission subsystem | Objectives update in order; mission completes; tested with console skip commands | Not started |
