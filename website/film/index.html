@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>عُمان: الجانب المظلم — تجربة سينمائية</title>
+<style>
+  :root { --sand: #cfa878; --gold: #f0b52a; --ember: #c2413a; --fg: #f2ece0; --f: -apple-system, BlinkMacSystemFont, "SF Arabic", "SF Pro Text", system-ui, "Segoe UI", Tahoma, sans-serif; color-scheme: dark; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: #000; color: var(--fg); font-family: var(--f); overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-font-smoothing: antialiased; }
+  [hidden] { display: none !important; }
+  button { font-family: inherit; color: inherit; cursor: pointer; }
+  #stage { position: fixed; inset: 0; overflow: hidden; overflow: clip; background: #000; direction: ltr; }
+  #sub, #note, #choices, .place, #clues { direction: rtl; }
+  #shot { position: absolute; transform-origin: 50% 50%; will-change: transform; }
+  #shot img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #fade { position: absolute; inset: 0; background: #000; opacity: 1; transition: opacity 1.4s ease; pointer-events: none; }
+  .bar { position: absolute; left: 0; right: 0; height: 9vh; background: #000; z-index: 5; pointer-events: none; }
+  .bar.top { top: 0; } .bar.bot { bottom: 0; }
+  .label { position: absolute; z-index: 6; top: calc(9vh + 10px); left: max(16px, env(safe-area-inset-left)); direction: ltr; line-height: .9; text-shadow: 0 2px 10px #000; pointer-events: none; opacity: 0; transition: opacity 1.2s; }
+  .label b { display: block; font-size: 1.4rem; font-weight: 900; } .label span { display: block; color: var(--ember); font-weight: 900; font-size: .7rem; letter-spacing: .06em; }
+  .place { position: absolute; z-index: 6; top: calc(9vh + 10px); right: max(16px, env(safe-area-inset-right)); text-align: right; text-shadow: 0 2px 10px #000; opacity: 0; transition: opacity 1.2s; pointer-events: none; }
+  .place small { display: block; color: var(--sand); font-size: .75rem; letter-spacing: .08em; } .place strong { font-size: 1.3rem; }
+  .on { opacity: 1 !important; }
+  .spot { position: absolute; z-index: 3; width: 64px; height: 64px; margin: -32px 0 0 -32px; border: 0; background: none; padding: 0; }
+  .spot::before { content: ""; position: absolute; inset: 22px; border-radius: 50%; background: rgba(255,240,200,.9); box-shadow: 0 0 14px 4px rgba(255,220,150,.7); animation: glint 2.6s infinite; }
+  .spot::after { content: ""; position: absolute; inset: 8px; border-radius: 50%; border: 1.5px solid rgba(255,230,180,.6); animation: ring 2.6s infinite; }
+  .spot.seen::before { inset: 28px; background: rgba(240,181,42,.55); box-shadow: none; animation: none; } .spot.seen::after { display: none; }
+  @keyframes glint { 0%, 100% { opacity: .25; transform: scale(.7); } 50% { opacity: 1; transform: scale(1); } }
+  @keyframes ring { 0% { opacity: .8; transform: scale(.4); } 100% { opacity: 0; transform: scale(1.3); } }
+  #sub { position: absolute; z-index: 7; bottom: calc(9vh + 14px); left: 50%; transform: translateX(-50%); width: min(90vw, 760px); text-align: center; font-size: clamp(1rem, 2.5vw, 1.25rem); line-height: 1.7; text-shadow: 0 2px 8px #000, 0 0 3px #000; pointer-events: none; }
+  #sub b { color: var(--gold); }
+  #note { position: absolute; z-index: 8; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(86vw, 440px); background: rgba(8,10,16,.88); border: 1px solid rgba(240,181,42,.5); border-radius: 12px; padding: 14px 16px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  #note small { color: var(--gold); font-size: .78rem; } #note h3 { margin: 4px 0 6px; font-size: 1.15rem; } #note p { margin: 0 0 10px; line-height: 1.75; font-size: .95rem; }
+  #choices { position: absolute; z-index: 8; bottom: calc(9vh + 16px); left: 50%; transform: translateX(-50%); display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: min(92vw, 720px); }
+  .choice { background: rgba(8,10,16,.82); border: 1px solid rgba(240,181,42,.6); border-radius: 999px; padding: 12px 20px; font-size: 1rem; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  .choice:active { background: rgba(240,181,42,.25); }
+  .btn { background: var(--sand); color: #17120c; border: 0; border-radius: 10px; padding: 12px 20px; font-weight: 700; font-size: 1rem; }
+  .ghost { background: transparent; color: var(--fg); border: 1px solid rgba(255,255,255,.3); }
+  #clues { position: absolute; z-index: 7; bottom: calc(9vh + 14px); left: max(16px, env(safe-area-inset-left)); font-size: .8rem; color: var(--sand); text-shadow: 0 1px 4px #000; pointer-events: none; font-variant-numeric: tabular-nums; }
+  .screen { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 40%, rgba(10,12,18,.55), rgba(0,0,0,.94) 70%), url(../assets/scenes/jabal.jpg) center / cover; padding: 20px; }
+  .card { width: min(560px, 100%); display: grid; gap: 12px; text-align: right; }
+  .card h1 { margin: 0; font-size: clamp(1.8rem, 6vw, 2.6rem); } .card p { margin: 0; line-height: 1.8; color: #d9d3c8; }
+  .kick { color: var(--gold); font-size: .82rem; letter-spacing: .06em; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .tiny { font-size: .8rem; color: #9aa0a8; }
+  @media (prefers-reduced-motion: reduce) { .spot::before, .spot::after { animation: none; } }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="shot"><img id="img" alt=""><div id="spots"></div></div>
+  <canvas id="fx"></canvas>
+  <div class="bar top"></div><div class="bar bot"></div>
+  <div class="label" id="label" lang="en"><b>OMAN</b><span>THE DARK SIDE</span></div>
+  <div class="place" id="place"><small id="place-k"></small><strong id="place-t"></strong></div>
+  <div id="clues"></div>
+  <div id="sub" hidden></div>
+  <div id="choices" hidden></div>
+  <div id="note" hidden><small>دليل</small><h3></h3><p></p><button class="btn" type="button" id="note-ok">متابعة</button></div>
+  <div id="fade"></div>
+</div>
+
+<section class="screen" id="start">
+  <div class="card">
+    <span class="kick">تجربة سينمائية · ٣ مشاهد</span>
+    <h1>عُمان: الجانب المظلم</h1>
+    <p>هذه تجربة لشكل «الفيلم التفاعلي». المشاهد من صورك، تتحرك فيها الكاميرا والضباب والغبار. المس النقاط المضيئة لتفحص الأدلة، واختر طريقك في آخر كل مشهد.</p>
+    <p class="tiny">في النسخة الكاملة تصير المشاهد مقاطع فيديو حقيقية تولّدينها من صورك.</p>
+    <div class="row"><button class="btn" type="button" id="go">ابدأ</button><a class="btn ghost" href="../index.html" style="text-decoration:none">العودة للعبة</a></div>
+  </div>
+</section>
+<section class="screen" id="end" hidden>
+  <div class="card">
+    <span class="kick">نهاية التجربة</span>
+    <h1>«يتبع…»</h1>
+    <p id="end-text"></p>
+    <div class="row"><button class="btn" type="button" id="again">شاهد مرة ثانية</button><a class="btn ghost" href="../index.html" style="text-decoration:none">العودة للعبة</a></div>
+  </div>
+</section>
+
+<script>
+(function () {
+  'use strict';
+  const $ = (s) => document.querySelector(s);
+  // ---------- story ----------
+  const SHOTS = {
+    muscat: {
+      img: '../assets/scenes/muscat.jpg', kicker: 'مسقط', title: 'الغروب الأخير', fx: 'warm',
+      move: { from: [1.06, 0.6, 0.0], to: [1.16, -1.4, -1.2] },
+      lines: [['', '(يرن الهاتف)'], ['مريم', 'راشد… خلفان ما رجع من ثلاث ليالٍ. سيارته عند الوادي، والشرطة تقول سافر.'], ['راشد', 'وين كان يشتغل؟'], ['مريم', 'مسح أراضي… قرب القرى القديمة في الجبل.']],
+      spots: [
+        { x: 7, y: 74, t: 'سيارتك', d: 'دفع رباعي، والغبار عليها من آخر رحلة. الطريق إلى الجبل ساعتين ونص.' },
+        { x: 50, y: 47, t: 'المدينة تحت', d: 'الأضواء تشتغل وحدة وحدة. في مكان ما بين هالبيوت، أحد يعرف وين خلفان.' },
+        { x: 8, y: 26, t: 'القلعة القديمة', d: 'خلفان كان يقول: كل حصن هنا شاف شي ما انكتب.' },
+      ],
+      choices: [{ t: 'انطلق إلى الجبل الآن', go: 'desert', line: ['راشد', 'بطلع الحين. لا تتصلين بأحد غيري.'] }, { t: 'اسأل مريم عن آخر رسالة', go: 'desert', line: ['مريم', 'آخر رسالة منه: «في الخريطة سبعة… عددتها ثمانية». ما فهمت شي.'], flag: 'message' }],
+    },
+    desert: {
+      img: '../assets/scenes/sharqiya.jpg', kicker: 'الطريق', title: 'العاصفة', fx: 'sand',
+      move: { from: [1.08, 1.0, 0.4], to: [1.2, -0.8, -0.6] },
+      lines: [['', '(الريح تشتد، والرمل يغطي الطريق)'], ['راشد', 'الراديو يقطع… بس أسمع شي تحت التشويش.'], ['', '(صوت بعيد في الراديو يعدّ: … خمسة… ستة… سبعة…)']],
+      spots: [
+        { x: 72, y: 66, t: 'آثار على السيارة', d: 'طين أحمر يابس على الإطار الخلفي. ما في طين أحمر في الصحراء.' },
+        { x: 8, y: 60, t: 'آثار إطارات', d: 'إطارات عريضة سبقتك على نفس الطريق قبل العاصفة. أحد مستعجل.' },
+        { x: 50, y: 24, t: 'العاصفة', d: 'جدار رمل يتحرك ببطء. بعد دقائق ما بيكون في طريق.' },
+      ],
+      choices: [{ t: 'أكمل رغم العاصفة', go: 'jabal', line: ['راشد', 'ما عندي وقت أنتظر.'] }, { t: 'انتظر حتى تهدأ', go: 'jabal', line: ['', '(بعد ساعة، الطريق يظهر من جديد… والراديو صامت تماماً)'], flag: 'waited' }],
+    },
+    jabal: {
+      img: '../assets/scenes/jabal.jpg', kicker: 'الجبل', title: 'قرية الضباب', fx: 'fog',
+      move: { from: [1.05, 0.0, 1.0], to: [1.22, -2.0, -1.8] },
+      lines: [['', '(القرية فاضية. صوت ماء يقطر من مكان ما)'], ['راشد', 'خلفان؟'], ['', '(لا أحد يرد. لكن في آخر الممر، الضباب يتحرك عكس الريح)']],
+      spots: [
+        { x: 52, y: 84, t: 'آثار أقدام مبللة', d: 'حذاء عمل، الخطوات حديثة وتمشي باتجاه آخر الممر.' },
+        { x: 56, y: 15, t: 'عمود الكهرباء', d: 'الأسلاك مقطوعة من سنين… لكن المصباح فوق دافي.' },
+        { x: 14, y: 38, t: 'البيوت على الحافة', d: 'عددها سبعة… لا، ثمانية. البيت الأخير ما كان موجود في الخريطة.' },
+        { x: 88, y: 60, t: 'الجدار الحجري', d: 'خطوط محفورة: سبعة قديمة، وخط ثامن جديد بعمق.' },
+      ],
+      ghost: { x: 59, y: 36 },
+      choices: [{ t: 'اتبع الحركة في الضباب', go: 'end', line: ['', '(تخطو داخل الضباب… وتسمع صوت خلفان قريب جداً: «لا تعدّها»)'] }, { t: 'ارجع للسيارة', go: 'end', line: ['', '(وأنت تمشي، تسمع خطوات خلفك تتوقف عندما تتوقف)'] }],
+    },
+  };
+
+  // ---------- stage geometry (cover-fit the image, keep hotspots aligned) ----------
+  const shot = $('#shot'), img = $('#img'), fx = $('#fx'), g = fx.getContext('2d');
+  let cur = null, t0 = 0, raf = 0, iw = 1600, ih = 900, found = 0, total = 0, flags = {};
+  function layout() {
+    const W = innerWidth, H = innerHeight, k = Math.max(W / iw, H / ih);
+    shot.style.width = iw * k + 'px'; shot.style.height = ih * k + 'px';
+    shot.style.left = (W - iw * k) / 2 + 'px'; shot.style.top = (H - ih * k) / 2 + 'px';
+    const d = Math.min(2, devicePixelRatio || 1); fx.width = W * d; fx.height = H * d; g.setTransform(d, 0, 0, d, 0, 0);
+  }
+  addEventListener('resize', layout);
+
+  // ---------- atmosphere ----------
+  const fogPuffs = Array.from({ length: 16 }, () => ({ x: Math.random(), y: 0.2 + Math.random() * 0.7, r: 0.18 + Math.random() * 0.3, v: 0.004 + Math.random() * 0.01, a: 0.05 + Math.random() * 0.08 }));
+  const motes = Array.from({ length: 140 }, () => ({ x: Math.random(), y: Math.random(), s: Math.random() * 1.8 + 0.4, v: Math.random() }));
+  const streaks = Array.from({ length: 90 }, () => ({ x: Math.random(), y: 0.3 + Math.random() * 0.7, l: 40 + Math.random() * 140, v: 0.25 + Math.random() * 0.5 }));
+  function drawFx(t) {
+    const W = innerWidth, H = innerHeight; g.clearRect(0, 0, W, H);
+    if (!cur) return;
+    if (cur.fx === 'fog') {
+      fogPuffs.forEach((p) => { p.x += p.v / 60; if (p.x - p.r > 1.1) p.x = -p.r; const x = p.x * W, y = p.y * H, r = p.r * W; const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(180,200,215,${p.a})`); gr.addColorStop(1, 'rgba(180,200,215,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); });
+      motes.forEach((m) => { m.y -= 0.0004 + m.v * 0.0006; m.x += Math.sin(t * 0.6 + m.v * 9) * 0.0003; if (m.y < 0) m.y = 1; g.fillStyle = `rgba(220,235,245,${0.15 + m.v * 0.3})`; g.fillRect(m.x * W, m.y * H, m.s, m.s); });
+      if (cur.ghostOn) { const gx = cur.ghost.x / 100, gy = cur.ghost.y / 100, a = cur.ghostA; const r = shot.getBoundingClientRect(); const x = r.left + gx * r.width, y = r.top + gy * r.height, h = r.height * 0.12; g.save(); g.globalAlpha = a; const gr = g.createLinearGradient(x, y - h, x, y + h * 0.2); gr.addColorStop(0, 'rgba(215,230,245,0.9)'); gr.addColorStop(1, 'rgba(215,230,245,0)'); g.fillStyle = gr; g.beginPath(); g.ellipse(x, y - h * 0.82, h * 0.09, h * 0.11, 0, 0, 7); g.fill(); g.beginPath(); g.moveTo(x - h * 0.12, y - h * 0.7); g.lineTo(x + h * 0.12, y - h * 0.7); g.lineTo(x + h * 0.2, y + h * 0.2); g.lineTo(x - h * 0.2, y + h * 0.2); g.fill(); g.restore(); }
+    } else if (cur.fx === 'sand') {
+      g.fillStyle = `rgba(210,150,80,${0.06 + Math.sin(t * 0.5) * 0.03})`; g.fillRect(0, 0, W, H);
+      streaks.forEach((s) => { s.x -= s.v * 0.004; if (s.x < -0.2) { s.x = 1.1; s.y = 0.3 + Math.random() * 0.7; } g.strokeStyle = `rgba(235,190,130,${0.12 + s.v * 0.15})`; g.lineWidth = 1; g.beginPath(); g.moveTo(s.x * W, s.y * H); g.lineTo(s.x * W + s.l, s.y * H + 4); g.stroke(); });
+      motes.forEach((m) => { m.x -= 0.001 + m.v * 0.003; if (m.x < 0) m.x = 1; g.fillStyle = `rgba(240,200,140,${0.25 + m.v * 0.35})`; g.fillRect(m.x * W, m.y * H, m.s + 0.5, m.s); });
+    } else {
+      motes.forEach((m) => { m.y -= 0.0002 + m.v * 0.0003; if (m.y < 0) m.y = 1; g.fillStyle = `rgba(255,210,150,${0.08 + m.v * 0.2})`; g.fillRect(m.x * W, m.y * H, m.s, m.s); });
+      const pulse = 0.05 + Math.sin(t * 0.8) * 0.02; const gr = g.createRadialGradient(W * 0.6, H * 0.2, 0, W * 0.6, H * 0.2, W * 0.6); gr.addColorStop(0, `rgba(255,170,90,${pulse})`); gr.addColorStop(1, 'rgba(255,170,90,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    }
+    // vignette
+    const v = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.55)'); g.fillStyle = v; g.fillRect(0, 0, W, H);
+  }
+
+  // ---------- sound (quiet wind; optional) ----------
+  let actx = null, windG = null;
+  function audio() {
+    if (actx) return; const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; actx = new AC();
+    const b = actx.createBuffer(1, actx.sampleRate * 3, actx.sampleRate), d = b.getChannelData(0); let l = 0; for (let i = 0; i < d.length; i++) { l = (l + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = l * 3; }
+    const s = actx.createBufferSource(); s.buffer = b; s.loop = true; const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 380; windG = actx.createGain(); windG.gain.value = 0; s.connect(lp); lp.connect(windG); windG.connect(actx.destination); s.start();
+  }
+  const wind = (v) => { if (windG) windG.gain.setTargetAtTime(v, actx.currentTime, 1.5); };
+
+  // ---------- playback ----------
+  let subT = 0;
+  function sub(who, text, sec) { const el = $('#sub'); el.textContent = ''; if (who) { const b = document.createElement('b'); b.textContent = who + ': '; el.append(b); } el.append(text); el.hidden = false; clearTimeout(subT); subT = setTimeout(() => { el.hidden = true; }, sec * 1000); }
+  function lines(list, done) { let i = 0; (function n() { if (i >= list.length) { done && setTimeout(done, 400); return; } const [w, t] = list[i++], sec = Math.max(2.4, t.length / 14); sub(w, t, sec); setTimeout(n, sec * 1000 + 250); })(); }
+
+  function play(id) {
+    if (id === 'end') return finish();
+    const S = SHOTS[id]; $('#fade').style.opacity = 1; $('#choices').hidden = true;
+    setTimeout(() => {
+      img.onload = () => {
+        iw = img.naturalWidth; ih = img.naturalHeight; layout();
+        cur = Object.assign({ id, ghostOn: false, ghostA: 0 }, S); t0 = performance.now();
+        $('#place-k').textContent = S.kicker; $('#place-t').textContent = S.title; $('#place').classList.add('on'); $('#label').classList.add('on');
+        const box = $('#spots'); box.innerHTML = ''; S.spots.forEach((sp) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'spot'; b.style.left = sp.x + '%'; b.style.top = sp.y + '%'; b.setAttribute('aria-label', sp.t); b.addEventListener('click', () => openNote(sp, b)); box.append(b); });
+        total += S.spots.length; updateClues();
+        wind(S.fx === 'sand' ? 0.22 : S.fx === 'fog' ? 0.12 : 0.05);
+        $('#fade').style.opacity = 0;
+        setTimeout(() => lines(S.lines, () => { if (S.ghost) ghostMoment(() => showChoices(S)); else showChoices(S); }), 1600);
+      };
+      img.src = S.img;
+    }, 1300);
+  }
+  function ghostMoment(done) { cur.ghostOn = true; const t = performance.now(); (function f() { const k = (performance.now() - t) / 1000; cur.ghostA = k < 1.5 ? k / 1.5 * 0.5 : k < 3 ? 0.5 : Math.max(0, 0.5 - (k - 3) / 1.2); if (k < 4.3) requestAnimationFrame(f); else { cur.ghostOn = false; sub('', '(لم يكن هناك أحد.)', 2.5); setTimeout(done, 2200); } })(); }
+  function showChoices(S) {
+    const c = $('#choices'); c.innerHTML = '';
+    S.choices.forEach((ch) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'choice'; b.textContent = ch.t; b.addEventListener('click', () => { c.hidden = true; if (ch.flag) flags[ch.flag] = true; sub(ch.line[0], ch.line[1], 3.6); setTimeout(() => play(ch.go), 3600); }); c.append(b); });
+    c.hidden = false;
+  }
+  function openNote(sp, btn) { const n = $('#note'); n.querySelector('h3').textContent = sp.t; n.querySelector('p').textContent = sp.d; n.hidden = false; if (!btn.classList.contains('seen')) { btn.classList.add('seen'); found++; updateClues(); } }
+  $('#note-ok').addEventListener('click', () => { $('#note').hidden = true; });
+  function updateClues() { $('#clues').textContent = `الأدلة: ${found.toLocaleString('ar-OM')} / ${total.toLocaleString('ar-OM')}`; }
+  function finish() {
+    $('#fade').style.opacity = 1; wind(0.03);
+    setTimeout(() => { $('#end-text').textContent = `فحصت ${found.toLocaleString('ar-OM')} من ${total.toLocaleString('ar-OM')} أدلة.${flags.message ? ' عرفت آخر رسالة من خلفان.' : ''}${flags.waited ? ' انتظرت العاصفة، وسكت الراديو.' : ''} في النسخة الكاملة، كل مشهد مقطع فيديو، وكل اختيار يغيّر القصة.`; $('#end').hidden = false; }, 1400);
+  }
+
+  // camera move (Ken Burns) + effects
+  function frame(now) {
+    raf = requestAnimationFrame(frame);
+    if (cur) { const k = Math.min(1, (now - t0) / 26000), e = k * k * (3 - 2 * k), [s0, x0, y0] = cur.move.from, [s1, x1, y1] = cur.move.to; shot.style.transform = `translate(${x0 + (x1 - x0) * e}%, ${y0 + (y1 - y0) * e}%) scale(${s0 + (s1 - s0) * e})`; }
+    drawFx(now / 1000);
+  }
+  $('#go').addEventListener('click', () => { audio(); $('#start').hidden = true; found = 0; total = 0; flags = {}; play('muscat'); });
+  $('#again').addEventListener('click', () => { $('#end').hidden = true; found = 0; total = 0; flags = {}; play('muscat'); });
+  layout(); raf = requestAnimationFrame(frame);
+  window.__film = { play, get state() { return { cur: cur && cur.id, found, total }; } };
+})();
+</script>
+</body>
+</html>
