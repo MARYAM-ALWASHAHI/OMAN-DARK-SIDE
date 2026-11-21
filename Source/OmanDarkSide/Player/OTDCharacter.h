@@ -11,14 +11,20 @@ class UInputAction;
 class UInputMappingContext;
 struct FInputActionValue;
 
+UENUM(BlueprintType)
+enum class EOTDCameraMode : uint8
+{
+	ThirdPerson,
+	FirstPerson
+};
+
 /**
- * Player character for the mobile vertical slice. THIRD-PERSON ONLY (project decision).
+ * Player character for the vertical slice (Milestone 1).
  *
- * Provides: walk / run, crouch, jump, touch look, and a collision-aware follow camera.
- * Input: touch (virtual joysticks + on-screen buttons) is the target. Keyboard/mouse/gamepad
- * mappings exist only so the game can be tested inside the Unreal editor.
- * If no Input Action assets are assigned in a Blueprint subclass, defaults are built at runtime.
- * Body: a placeholder cylinder until the real Rashid character mesh exists.
+ * Provides: walk / sprint, mouse look, jump, and first/third-person camera switching.
+ * Input: if no Input Action assets are assigned in a Blueprint subclass, a default
+ * keyboard+mouse mapping is created at runtime so the prototype works with zero editor assets.
+ * Body: a placeholder cylinder until a real character mesh exists (out of scope for M1).
  */
 UCLASS()
 class OMANDARKSIDE_API AOTDCharacter : public ACharacter
@@ -28,23 +34,17 @@ class OMANDARKSIDE_API AOTDCharacter : public ACharacter
 public:
 	AOTDCharacter();
 
-	/** Crouch / stand up. Crouching also stops running. */
-	UFUNCTION(BlueprintCallable, Category = "OTD|Movement")
-	void ToggleCrouch();
+	UFUNCTION(BlueprintCallable, Category = "OTD|Camera")
+	void SetCameraMode(EOTDCameraMode NewMode);
+
+	UFUNCTION(BlueprintPure, Category = "OTD|Camera")
+	EOTDCameraMode GetCameraMode() const { return CameraMode; }
 
 	UFUNCTION(BlueprintPure, Category = "OTD|Movement")
 	bool IsSprinting() const { return bIsSprinting; }
 
-	UFUNCTION(BlueprintCallable, Category = "OTD|Movement")
-	void SetSprinting(bool bNewSprinting);
-
-	/** Used by the touch RUN button (holding a button while steering is awkward on a phone). */
-	UFUNCTION(BlueprintCallable, Category = "OTD|Movement")
-	void ToggleSprint() { SetSprinting(!bIsSprinting); }
-
 protected:
 	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void PawnClientRestart() override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
@@ -54,6 +54,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OTD|Camera")
 	TObjectPtr<UCameraComponent> ThirdPersonCamera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OTD|Camera")
+	TObjectPtr<UCameraComponent> FirstPersonCamera;
 
 	/** Temporary visible body. Replace with a skeletal mesh in a later milestone. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OTD|Placeholder")
@@ -66,25 +69,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "OTD|Movement", meta = (ClampMin = "50"))
 	float SprintSpeed = 600.f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "OTD|Movement", meta = (ClampMin = "50"))
-	float CrouchSpeed = 150.f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "OTD|Camera")
+	EOTDCameraMode StartingCameraMode = EOTDCameraMode::ThirdPerson;
 
-	/** Camera distance behind the character (the spring arm also pulls in when blocked by walls). */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "OTD|Camera", meta = (ClampMin = "120", ClampMax = "600"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "OTD|Camera")
 	float ThirdPersonArmLength = 300.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "OTD|Camera")
+	float FirstPersonEyeHeight = 64.f;
 
 	/** Print camera/sprint state changes on screen (useful for M1 testing). */
 	UPROPERTY(EditDefaultsOnly, Category = "OTD|Debug")
 	bool bShowDebugMessages = true;
-
-	// --- Mobile (phone / iPad) ---
-	/** Show on-screen RUN / CROUCH / JUMP buttons on touch devices. */
-	UPROPERTY(EditDefaultsOnly, Category = "OTD|Mobile")
-	bool bEnableTouchControls = true;
-
-	/** Also show the touch buttons on PC (to test in PIE with "Use Mouse for Touch"). */
-	UPROPERTY(EditDefaultsOnly, Category = "OTD|Mobile")
-	bool bForceTouchControls = false;
 
 	// --- Input (optional assets; runtime defaults are built if any are left empty) ---
 	UPROPERTY(EditDefaultsOnly, Category = "OTD|Input")
@@ -103,7 +99,7 @@ protected:
 	TObjectPtr<UInputAction> SprintAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "OTD|Input")
-	TObjectPtr<UInputAction> CrouchAction;
+	TObjectPtr<UInputAction> ToggleCameraAction;
 
 private:
 	void BuildDefaultInputIfMissing();
@@ -111,15 +107,12 @@ private:
 
 	void HandleMove(const FInputActionValue& Value);
 	void HandleLook(const FInputActionValue& Value);
-	void HandleSprintStarted() { SetSprinting(true); }
-	void HandleSprintStopped() { SetSprinting(false); }
-
-	void ShowTouchControlsIfNeeded();
-	void HideTouchControls();
-
-	TSharedPtr<class SWidget> TouchControlsWidget;
+	void HandleSprintStarted();
+	void HandleSprintStopped();
+	void HandleToggleCamera();
 
 	void DebugMessage(const FString& Message) const;
 
+	EOTDCameraMode CameraMode = EOTDCameraMode::ThirdPerson;
 	bool bIsSprinting = false;
 };
