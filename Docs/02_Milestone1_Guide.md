@@ -48,7 +48,7 @@
 
 ---
 
-## M1b: Phone and iPad support (added after the initial M1)
+## M1b: Phone and iPad support (the project is now mobile only)
 **Status: code and config written but never compiled, packaged, or run on a device.**
 
 ### What was added
@@ -60,6 +60,7 @@
 - **Android settings:** landscape only, arm64, Vulkan.
 - **iOS settings:** iPhone and iPad, landscape only, Metal.
 - The package/bundle ID `com.omandarkside.prototype` is a **placeholder**. Change it to your own.
+- **Mobile-only project settings:** the target hardware is set to Mobile at Maximum quality. The renderer settings are mobile deferred shading, HDR, TAA and mobile ambient occlusion, and the PC-only Lumen and virtual-shadow settings were removed. Keyboard and mouse remain only so you can test in the editor.
 
 ### Testing on PC first (quickest)
 1. Editor Preferences → Level Editor → Play → enable **Use Mouse for Touch**.
