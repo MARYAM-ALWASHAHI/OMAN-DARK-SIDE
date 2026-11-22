@@ -13,3 +13,7 @@ Saved/
 *.sdf
 *.VC.db
 *.VC.opendb
+
+# Python bytecode (editor scripts / tools)
+__pycache__/
+*.pyc
