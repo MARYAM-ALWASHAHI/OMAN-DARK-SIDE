@@ -19,7 +19,8 @@
     const s = ctx.createBufferSource(); s.buffer = noise; s.loop = true; const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 340; const g = ctx.createGain(); g.gain.value = 0.11;
     const lfo = ctx.createOscillator(); lfo.frequency.value = 0.04; const la = ctx.createGain(); la.gain.value = 120; lfo.connect(la); la.connect(lp.frequency); lfo.start();
     s.connect(lp); lp.connect(g); g.connect(amb); s.start();
-    fetch('sounds/manifest.json').then((r) => (r.ok ? r.json() : { files: [] })).then((m) => Promise.all((m.files || []).map((f) => fetch('sounds/' + f).then((r) => r.arrayBuffer()).then((ab) => new Promise((ok) => ctx.decodeAudioData(ab, (b) => { real[f.replace(/\.[^.]+$/, '')] = b; ok(); }, ok))).catch(() => {})))).then(() => { if (real.wind) { const w = ctx.createBufferSource(); w.buffer = real.wind; w.loop = true; const wg = ctx.createGain(); wg.gain.value = 0.6; w.connect(wg); wg.connect(amb); w.start(); g.gain.value = 0; } if (real.night) { const n = ctx.createBufferSource(); n.buffer = real.night; n.loop = true; const ng = ctx.createGain(); ng.gain.value = 0.5; n.connect(ng); ng.connect(amb); n.start(); } }).catch(() => {});
+    const BASE = window.SND_BASE || 'sounds/';
+    fetch(BASE + 'manifest.json').then((r) => (r.ok ? r.json() : { files: [] })).then((m) => Promise.all((m.files || []).map((f) => fetch(BASE + f).then((r) => r.arrayBuffer()).then((ab) => new Promise((ok) => ctx.decodeAudioData(ab, (b) => { real[f.replace(/\.[^.]+$/, '')] = b; ok(); }, ok))).catch(() => {})))).then(() => { if (real.wind) { const w = ctx.createBufferSource(); w.buffer = real.wind; w.loop = true; const wg = ctx.createGain(); wg.gain.value = 0.6; w.connect(wg); wg.connect(amb); w.start(); g.gain.value = 0; } if (real.night) { const n = ctx.createBufferSource(); n.buffer = real.night; n.loop = true; const ng = ctx.createGain(); ng.gain.value = 0.5; n.connect(ng); ng.connect(amb); n.start(); } }).catch(() => {});
   };
   S.toggle = () => { on = !on; if (master) master.gain.setTargetAtTime(on ? 0.8 : 0, ctx.currentTime, 0.1); return on; };
   S.isOn = () => on;
@@ -41,6 +42,13 @@
     if (!ctx) return; if (real.whisper) { const p = ctx.createStereoPanner(); p.pan.value = pan; const s = ctx.createBufferSource(); s.buffer = real.whisper; const g = ctx.createGain(); g.gain.value = 0.5; s.connect(g); g.connect(p); p.connect(master); s.start(); return; }
     const p = ctx.createStereoPanner(); p.pan.value = pan; p.connect(master); let t = ctx.currentTime + 0.05;
     for (let i = 0; i < syl; i++) { const dur = 0.12 + Math.random() * 0.14, s = ctx.createBufferSource(); s.buffer = noise; const g = ctx.createGain(); env(g, t, 0.04, 0.08 + Math.random() * 0.05, dur, 0.09); [[700, 1200], [390, 2300], [300, 870], [640, 1190]][i % 4].forEach((f) => { const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f * 2.2; bp.Q.value = 4; s.connect(bp); bp.connect(g); }); g.connect(p); s.start(t, Math.random() * 2, dur + 0.2); t += dur + 0.08 + Math.random() * 0.12 + (Math.random() < 0.2 ? 0.35 : 0); }
+  };
+  /** One soft footstep (stone or gravel). */
+  S.step = (soft) => {
+    if (!ctx) return; if (real.step) return play(real.step, 0.35, 0.9 + Math.random() * 0.2);
+    const t = ctx.currentTime, s = ctx.createBufferSource(); s.buffer = noise; s.playbackRate.value = 1.6 + Math.random() * 0.6;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = soft ? 700 : 1100 + Math.random() * 300; bp.Q.value = 0.9;
+    const g = ctx.createGain(); env(g, t, 0.004, soft ? 0.08 : 0.12, 0.015, 0.1); s.connect(bp); bp.connect(g); g.connect(master); s.start(t, Math.random() * 2, 0.2);
   };
   /** Slow footsteps that pass behind the listener, left to right. */
   S.steps = (n = 6) => {
