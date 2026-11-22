@@ -49,8 +49,8 @@
   #oman-map { position: relative; height: calc(100vh - 20px); max-width: 100%; }
   #oman-canvas { width: 100%; height: 100%; display: block; border-radius: 6px; }
   .pin { position: absolute; transform: translate(-50%, -50%); background: none; border: 0; padding: 0; display: flex; align-items: center; gap: 6px; }
-  .pin i { width: 14px; height: 14px; border-radius: 50%; background: #6b7280; border: 2px solid rgba(255,255,255,.5); box-shadow: 0 0 0 4px rgba(0,0,0,.3); flex: none; }
-  .pin.ready i { background: var(--ember); border-color: #ffd0c0; animation: beat 2s infinite; }
+  .pin i { width: 14px; height: 14px; border-radius: 50%; background: var(--c, #6b7280); border: 2px solid rgba(255,255,255,.5); box-shadow: 0 0 0 4px rgba(0,0,0,.3); flex: none; }
+  .pin:not(.ready) i { opacity: .75; } .pin.ready i { border-color: #fff; animation: beat 2s infinite; }
   .pin.sel i { box-shadow: 0 0 0 6px rgba(207,168,120,.45); }
   .pin.up { flex-direction: column-reverse; transform: translate(-50%, -85%); } .pin.down { flex-direction: column; transform: translate(-50%, -15%); }
   .pin span { font-size: .8rem; font-weight: 700; text-shadow: 0 1px 4px #000, 0 0 2px #000; white-space: nowrap; }
@@ -62,8 +62,22 @@
   #region-progress { color: var(--muted); font-size: .85rem; margin: 0; }
   .rimg { aspect-ratio: 16 / 9; border-radius: 10px; border: 1px solid var(--line); background: linear-gradient(135deg, #1a2230, #0b0f16) center / cover no-repeat; flex: none; }
   .rclist { display: grid; gap: 6px; margin-top: auto; }
-  .rc { display: flex; justify-content: space-between; background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; font-size: .92rem; }
-  .rc span { color: var(--muted); font-size: .8rem; } .rc.sel { border-color: var(--sand); }
+  .rc { display: flex; align-items: center; gap: 10px; justify-content: space-between; background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; font-size: .92rem; }
+  .rc span { color: var(--muted); font-size: .8rem; } .rc.sel { border-color: var(--c, var(--sand)); background: rgba(255,255,255,.06); }
+  .rc i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; } .rc b { flex: 1; text-align: right; }
+  .bars { display: grid; gap: 10px; }
+  .bars label { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+  .bars .t { height: 8px; background: rgba(255,255,255,.08); border-radius: 999px; overflow: hidden; } .bars .t div { height: 100%; border-radius: 999px; background: var(--c, var(--sand)); transition: width .6s; }
+  .rchips { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; width: 96%; }
+  .rchip { background: rgba(10,13,20,.85); border: 1px solid rgba(255,255,255,.15); border-radius: 999px; padding: 6px 11px; font-size: .78rem; display: flex; align-items: center; gap: 6px; }
+  .rchip i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); } .rchip.sel { background: var(--c); color: #0f172a; font-weight: 700; } .rchip.sel i { background: #0f172a; }
+  @media (min-width: 900px) and (min-height: 600px) { .rchips { display: none; } }
+  @media (max-width: 899px), (max-height: 599px) {
+    .pin span { display: none; } .pin.sel span { display: block; }
+    .rchips { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; }
+    .rchips::-webkit-scrollbar { display: none; } .rchip { flex: none; }
+    #oman-map { height: calc(100vh - 70px); align-self: start; }
+  }
   @media (max-width: 760px), (max-height: 480px) { #oman { grid-template-columns: minmax(0, 1fr) 240px; } #oman .side h2 { font-size: 1.3rem; } }
 
   /* ---------- case map ---------- */
@@ -182,7 +196,7 @@
 </section>
 
 <section id="oman" class="screen" hidden>
-  <div class="mapcol"><div id="oman-map"><canvas id="oman-canvas"></canvas><div id="oman-pins"></div></div></div>
+  <div class="mapcol"><div id="oman-map"><canvas id="oman-canvas"></canvas><div id="oman-pins"></div></div><div class="rchips" id="region-chips"></div></div>
   <aside class="side pad">
     <p class="kicker">خريطة القضايا</p>
     <div id="region-img" class="rimg"></div>
@@ -190,6 +204,7 @@
     <p id="region-title"></p>
     <p id="region-hook"></p>
     <p id="region-progress"></p>
+    <div class="bars" id="region-bars"></div>
     <button id="region-go" class="btn" type="button">ادخل القضية</button>
     <p id="region-soon" class="tag">هذه القضية تُبنى في مرحلة قادمة.</p>
     <div class="rclist" id="region-list"></div>

@@ -49,6 +49,7 @@
 
   // ---------- Oman map ----------
   let omanDrawn = false, selRegion = 'nizwa';
+  const RCOL = { musandam: '#38bdf8', sohar: '#f97316', muscat: '#eab308', nizwa: '#a855f7', jabal: '#22c55e', sharqiya: '#fbbf24', salalah: '#34d399' };
   function goOman() {
     show('oman'); SND.ambience(0.25);
     const wrap = $('#oman-map'), cv = $('#oman-canvas');
@@ -59,7 +60,7 @@
     window.REGION_CASES.forEach((rc) => {
       const [lo, la] = window.OMAN.REGIONS[rc.id], [x, y] = window.OMAN.project(lo, la);
       const b = document.createElement('button'); b.type = 'button'; b.className = 'pin' + (rc.ready ? ' ready' : '') + (rc.id === selRegion ? ' sel' : '') + (rc.id === 'jabal' ? ' up' : rc.id === 'nizwa' ? ' down' : '');
-      b.style.left = x * 100 + '%'; b.style.top = y * 100 + '%'; b.innerHTML = '<i></i><span></span>'; b.querySelector('span').textContent = rc.name;
+      b.style.left = x * 100 + '%'; b.style.top = y * 100 + '%'; b.style.setProperty('--c', RCOL[rc.id]); b.innerHTML = '<i></i><span></span>'; b.querySelector('span').textContent = rc.name;
       b.addEventListener('click', () => { selRegion = rc.id; SND.click(); goOman(); });
       pins.appendChild(b);
     });
@@ -69,9 +70,18 @@
     $('#region-img').style.backgroundImage = imgs[rc.id] ? `url(${imgs[rc.id]})` : '';
     $('#region-name').textContent = rc.name; $('#region-title').textContent = '«' + rc.title + '»'; $('#region-hook').textContent = rc.hook;
     $('#region-go').hidden = !rc.ready; $('#region-soon').hidden = !!rc.ready;
-    $('#region-progress').textContent = rc.ready ? `${fmt(S.clues.length)} / ${fmt(TOTAL)} دليلاً` : 'تُبنى في مرحلة قادمة';
+    $('#region-progress').textContent = rc.ready ? '' : 'تُبنى في مرحلة قادمة';
+    const bars = $('#region-bars'); bars.innerHTML = ''; bars.style.setProperty('--c', RCOL[rc.id]); bars.hidden = !rc.ready;
+    if (rc.ready) [['الأدلة', S.clues.length, TOTAL], ['الاستنتاجات', S.deductions.length, C.deductions.length], ['تقدّم القضية', S.ended ? 1 : (S.clues.length / TOTAL) * 0.7 + (S.deductions.length / C.deductions.length) * 0.2 + (S.flags.solved ? 0.1 : 0), 1]].forEach(([n, v, m]) => {
+      const d = document.createElement('div'), pct = Math.round((v / m) * 100);
+      d.innerHTML = '<label><span></span><span></span></label><div class="t"><div></div></div>';
+      d.querySelectorAll('span')[0].textContent = n; d.querySelectorAll('span')[1].textContent = m === 1 ? fmt(pct) + '٪' : `${fmt(v)} / ${fmt(m)}`;
+      d.querySelector('.t div').style.width = pct + '%'; bars.append(d);
+    });
+    const chips = $('#region-chips'); chips.innerHTML = '';
+    window.REGION_CASES.forEach((r) => { const c = document.createElement('button'); c.type = 'button'; c.className = 'rchip' + (r.id === selRegion ? ' sel' : ''); c.style.setProperty('--c', RCOL[r.id]); c.innerHTML = '<i></i><span></span>'; c.querySelector('span').textContent = r.name; c.addEventListener('click', () => { selRegion = r.id; SND.click(); goOman(); }); chips.append(c); });
     const list = $('#region-list'); list.innerHTML = '';
-    window.REGION_CASES.forEach((r) => { const li = document.createElement('button'); li.type = 'button'; li.className = 'rc' + (r.id === selRegion ? ' sel' : ''); li.innerHTML = '<b></b><span></span>'; li.querySelector('b').textContent = r.name; li.querySelector('span').textContent = r.ready ? 'متاحة' : 'قريباً'; li.addEventListener('click', () => { selRegion = r.id; goOman(); }); list.appendChild(li); });
+    window.REGION_CASES.forEach((r) => { const li = document.createElement('button'); li.type = 'button'; li.className = 'rc' + (r.id === selRegion ? ' sel' : ''); li.style.setProperty('--c', RCOL[r.id]); li.innerHTML = '<i></i><b></b><span></span>'; li.querySelector('b').textContent = r.name; li.querySelector('span').textContent = r.ready ? 'متاحة' : 'قريباً'; li.addEventListener('click', () => { selRegion = r.id; goOman(); }); list.appendChild(li); });
   }
   $('#region-go').addEventListener('click', () => { SND.click(); if (!S.seen.intro) { S.seen.intro = 1; save(); $('#intro-text').textContent = C.intro; $('#intro').hidden = false; } else goCase(); });
   $('#intro-go').addEventListener('click', () => { $('#intro').hidden = true; goCase(); });
